@@ -1,0 +1,51 @@
+3.0.5-0 (16.11.2018) - update release.
+  - Added ability to get memory information on ARM platfrom;
+  - Added ability to get U-Boot version on ARM platform;
+  - Improved fetching CPU frequency on different on modern Intel CPUs;
+  - Added device busy check in I2cXfer function;
+  - Improved handling of command size parameter for SpiXfer function;
+  - Added support of 161 table in PICMG compatible EEPROMs (bootcounter
+    information);
+  - Added support of several PICMG EEPROMs on one system;
+  - Watchdog: fixed logic of KEAPI_WD_MODE_DISABLE stage;
+  - Updated PCI device database;
+  - PicmgWrapper: fixed setting GPIO directions.
+  - Added support for sensor configuration in /etc/keapi/sensors.conf and
+    /etc/sensors.d/kontron-keapi.conf
+  - Updated PCI device information
+  - Added NVME support to KEApiGetDiskDriveList function
+  - Removed spaces from disk model values returned by KEApiGetDiskDriveList
+  - Reworked I2C bus enumeration to handle gaps in bus numbers
+
+3.0.4-0 (18.05.2017) - update release.
+  - Fixed memory leak in KEApiGetDiskDriveList function;
+  - Changed versioning of the library files / packages;
+  - Added support of block access to GPIO;
+  - Added description of configuration files in provided documentation;
+  - Updated PCI device database.
+
+3.0.3.0-2 (28.07.2016) - update release.
+  - Minor fixes.
+  - Information about PCI devices has been updated.
+  - Added ability for auto calculation of performance states if Intel P-state
+    driver is used.
+
+3.0.3.0-1 (29.01.2015) - update release.
+  - Minor fixes and improvements.
+  - Information about PCI devices has been updated.
+
+3.0.2-3 (12.11.2014) - update release.
+  - Generic improvements and fixes.
+
+3.0.2 (09.30.2014) - update release.
+  - Changed data what is returned by GetMountPointCount and
+    GetMountPointList functions for better compliance to specification.
+
+3.0.1 (07.01.2014) - update release.
+  - Status of sensors and CPU frequency functions have been updated according
+    to KEAPI specification release.
+  - Reduced necessity of root permissions for initialize library.
+
+3.0.0 (05.28.2014) - initial release of Linux implementation.
+  - To know specifications changes since version 2.0 please
+    refer to Software specification for Kontron EAPI.

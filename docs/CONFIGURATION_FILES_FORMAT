@@ -1,0 +1,555 @@
+/* SPDX-License-Identifier: BSD-3-Clause */
+/* Copyright (C) 2019 Kontron AG */
+
+===============================================================================
+Configuration files format.
+===============================================================================
+
+Content
+=======
+1.0 Overview
+2.0 Configuration files backlight.conf and spi.conf
+2.1 Configuration file gpio.conf
+2.2 Configuration files i2c.conf and smbus.conf
+2.3 Configuration file mem.conf
+2.4 Configuration file storage.conf
+2.5 Configuration file systemstates.conf
+2.6 Configuration file watchdog.conf
+3.0 Description of intruder and bootcount0 symbolic links
+
+1.0 Overview
+============
+This document describes format of configuration files which could be used
+by KEAPI.
+
+In general can be used the following files:
+- backlight.conf
+- gpio.conf
+- i2c.conf
+- mem.conf
+- smbus.conf
+- spi.conf
+- storage.conf
+- systemstates.conf
+- watchdog.conf
+
+All files are placed in the "/etc/keapi" directory of target file system.
+
+All of them have json format, except last ones: spi.conf, backlight.conf,
+- they use old format "one string = one path". It will described later.
+
+Also there can be used two symbolic links:
+- intruder,
+- bootcount0.
+
+These symlinks usual point to some binary files in /dev/ or /sys/ directories.
+Reading these files we getting status of intruder sensor or quantity
+of machine boots.
+
+2.0 Configuration files backlight.conf and spi.conf
+===================================================
+
+Format of these configuration files is extrasimple
+It allows us just specify which SPI buses or backlight and its order will be
+used by KEAPI.
+
+Example of /etc/keapi/spi.conf:
+--------- START OF FILE ---------
+/dev/spidev3
+/dev/spidev2
+---------- END OF FILE ----------
+
+In this example we do not use spidev1 at all and we have changed order of
+second and third buses.
+
+Example of /etc/keapi/backlight.conf:
+--------- START OF FILE ---------
+/sys/class/backlight/acpi_video0
+---------- END OF FILE ----------
+
+ In the system we also have intel backlight driver which controls backlight
+ for the same display, but in this file we specify that KEAPI will be use
+ default acpi backlight driver.
+
+2.1 Configuration file gpio.conf
+================================
+
+This configuration file contains information about GPIO pins, to which KEAPI
+provides access. GPIO pins in KEAPI divided into groups of 32 pins in each.
+Each such group is called "port". Main part of configuration file represents
+array of GPIO ports. If there is not GPIO functionality on hw, then
+configuration file should be absent.
+
+But for successful work with >1 GPIO pins in one call, GPIO h/w driver
+has to provide such capabilities and interfaces. In linux kernels prior to
+4.4 such interfaces are not present. Also KEAPI supports two access methods to
+GPIO through sysfs.
+
+2.1.1 Modern "keapi-full" access method
+=======================================
+
+An example /etc/keapi/gpio.conf in case of modern access ("keapi-full"):
+--------- START OF FILE ---------
+{
+    "gpioStyle": "keapi-full",
+    "gpioPort": [
+        {
+            "portNumber": 0,
+            "label": "kempld-gpio",
+            "gpio": [
+                {
+                    "gpioIdx": 0,
+                    "directionCaps": "I"
+                },
+                {
+                    "gpioIdx": 1,
+                    "directionCaps": "I"
+                },
+                {
+                    "gpioIdx": 2,
+                    "directionCaps": "I"
+                },
+                {
+                    "gpioIdx": 3,
+                    "directionCaps": "I"
+                },
+                {
+                    "gpioIdx": 4,
+                    "directionCaps": "O"
+                },
+                {
+                    "gpioIdx": 5,
+                    "directionCaps": "O"
+                },
+                {
+                    "gpioIdx": 6,
+                    "directionCaps": "O"
+                },
+                {
+                    "gpioIdx": 7,
+                    "directionCaps": "O"
+                }
+            ]
+        }
+    ]
+}
+---------- END OF FILE ----------
+
+- gpioStyle - describes access method to GPIO pins.
+It may be "keapi-full", "linux-like" or "kontron-like-kem".
+"keapi-full" (available for kernel versions starting from 4.4) - modern access
+method will be used (see the example below).
+"linux-like" - means that old access method to GPIO will be used
+and all GPIO pins are described as one pin per port in the configuration file.
+"kontron-like-kem" - enhanced "linux-like" method makes able group access
+through SysFs.
+All GPIO pins should be described according to their h/w and driver specifics.
+- gpioPort - array of ports descriptions.
+- portNumber - is not parsed by library and is used as visual delimiter in
+configuration file in array of several ports (any JSON compatible fake
+parameter may be used for that purpose). May be used for "linux-like" or
+"kontron-like-kem" as well.
+- label - mandatory parameter, specifies GPIO chip label which are exported
+by GPIO driver. Is used to find corresponding char device among /dev/gpiochipX
+files. All the pins in a port must belong to the same /dev/gpiochipX device.
+- gpio - the only element in each port. It contains only an array of GPIO
+pins.
+- gpioIdx - index of the pin in /dev/gpiochipX (started from 0).
+- gpioNum - not used in "keapi-full" access method.
+- directionCaps - specifies pin's capabilities. It may be:
+    I - pin works only as input;
+    O - pin works only as output;
+    A - pin works as input as well as output.
+If the parameter is omitted then it assumes pin can work in both
+directions (equivalent to A value).
+
+With modern access method, it is also possible to group GPIO lines in two
+or more logically different "ports". For example it may be useful to group
+input-only pins in one port and output-only pins in another one. Below is
+an example of such configuration file:
+--------- START OF FILE ---------
+{
+    "gpioStyle": "keapi-full",
+    "gpioPort": [
+        {
+            "portNumber": 0,
+            "label": "kempld-gpio",
+            "gpio": [
+                {
+                    "gpioIdx": 0,
+                    "directionCaps": "I"
+                },
+                {
+                    "gpioIdx": 1,
+                    "directionCaps": "I"
+                },
+                {
+                    "gpioIdx": 2,
+                    "directionCaps": "I"
+                },
+                {
+                    "gpioIdx": 3,
+                    "directionCaps": "I"
+                }
+            ]
+        },
+        {
+            "portNumber": 1,
+            "label": "kempld-gpio",
+            "gpio": [
+                {
+                    "gpioIdx": 4,
+                    "directionCaps": "O"
+                },
+                {
+                    "gpioIdx": 5,
+                    "directionCaps": "O"
+                },
+                {
+                    "gpioIdx": 6,
+                    "directionCaps": "O"
+                },
+                {
+                    "gpioIdx": 7,
+                    "directionCaps": "O"
+                }
+            ]
+        }
+    ]
+}
+---------- END OF FILE ----------
+
+2.1.2 Deprecated "linux-like" access method. One GPIO per port
+==============================================================
+This is classic access method assumes that each GPIO must be described one
+GPIO per one port and index of that GPIO in port always is 0.
+
+An example /etc/keapi/gpio.conf:
+--------- START OF FILE ---------
+{
+    "gpioStyle": "linux-like",
+    "gpioPort": [
+        {
+            "gpio": [
+                {
+                    "gpioIdx": 0,
+                    "gpioNum": 0,
+                    "directionCaps": "I"
+                }
+            ]
+        },
+        {
+            "gpio": [
+                {
+                    "gpioIdx": 0,
+                    "gpioNum": 1,
+                    "directionCaps": "A"
+                }
+            ]
+        }
+    ]
+}
+---------- END OF FILE ----------
+
+- gpioStyle - describes access method to GPIO pins and should be "linux-like"
+in this case.
+- gpioPort - array of ports descriptions.
+- gpio - the only element in each port. It contains only an array of GPIO pins
+with the only one described pin in "linux-like" access method.
+- gpioIdx - specifies GPIO number in port among all 32 pins, should be "0"
+in "linux-like" accesss method.
+- gpioNum - specifies GPIO real number (uses for "linux-like" and
+"kontron-like-kem" access methods).
+- directionCaps - specifies pin's capabilities. It may be:
+    I - pin works only as input;
+    O - pin works only as output;
+    A - pin works as input as well as output.
+If the parameter is omitted then it assumes pin can work in both
+directions (equivalent to A value).
+
+2.1.3 Deprecated "kontron-like-kem" access method
+=================================================
+This is enhanced classic method. The difference is in that the method can
+emulate a group access to several GPIO pins simultaneously.
+Nevertheless, independently from GPIO driver implementation access to GPIO
+pins will be done as serial sequence access through SysFs.
+
+Configuration rules for this access method are the same as for "linux-like"
+except:
+- gpioStyle - describes access method to GPIO pins and should be
+"kontron-like-kem" in this case.
+- gpio - each port may have array of GPIO pins with more than one element.
+
+An example /etc/keapi/gpio.conf:
+--------- START OF FILE ---------
+{
+    "gpioStyle": "kontron-like-kem",
+    "gpioPort": [
+        {
+            "portNumber": 0,
+            "gpio": [
+                {
+                    "gpioIdx": 0,
+                    "gpioNum": 499,
+                    "directionCaps": "A"
+                },
+                {
+                    "gpioIdx": 1,
+                    "gpioNum": 498,
+                    "directionCaps": "A"
+                },
+                {
+                    "gpioIdx": 2,
+                    "gpioNum": 504,
+                    "directionCaps": "A"
+                },
+                {
+                    "gpioIdx": 3,
+                    "gpioNum": 501,
+                    "directionCaps": "A"
+                },
+                {
+                    "gpioIdx": 4,
+                    "gpioNum": 508,
+                    "directionCaps": "A"
+                },
+                {
+                    "gpioIdx": 5,
+                    "gpioNum": 509,
+                    "directionCaps": "A"
+                },
+                {
+                    "gpioIdx": 6,
+                    "gpioNum": 510,
+                    "directionCaps": "A"
+                },
+                {
+                    "gpioIdx": 7,
+                    "gpioNum": 511,
+                    "directionCaps": "A"
+                }
+            ]
+        }
+    ]
+}
+---------- END OF FILE ----------
+
+2.2 Configuration files i2c.conf and smbus.conf
+============================================
+
+These configuration files contain information about I2C and SMBus in system.
+They have similar format.
+
+An example of /etc/keapi/smbus.conf:
+--------- START OF FILE ---------
+{
+    "type": "smbus",
+    "bus": [
+        {
+            "unit": 0,
+            "name": "SMBus ITE8516K adapter"
+        }
+    ]
+}
+---------- END OF FILE ----------
+
+- type - specifies type of bus which describes this file. It could be "i2c"
+or "smbus".
+- bus - array which contains information about buses available for KEAPI.
+Format of array is the same as for I2C as well as for SMBus configuration files.
+Each element in array contains:
+- name - specifies name of bus. Name of a buses you can see
+in /sys/bus/i2c/devices/i2c-*/name.
+- unit - if in system there are more than one bus with the same name, field unit
+enables us to determine the order of these buses.
+
+If you don't want enable any I2C or SMBus buses for KEAPI you must make
+configuration file without specified buses.
+
+For example empty configuration file /etc/keapi/i2c.conf:
+--------- START OF FILE ---------
+{
+    "type": "i2c",
+    "bus": []
+}
+---------- END OF FILE ----------
+
+Note that if you don't create configuration files for I2C or SMBus, KEAPI will
+try to get list of buses with old methods itself.
+
+2.3 Configuration file mem.conf
+=========================================
+
+This configuration file describes RAM memory speed and type on systems on which
+those information cannot be taken by other ways, e.g. on ARM systems.
+
+On x86 systems this configuration file will be ignored.
+
+Example of /etc/keapi/mem.conf:
+--------- START OF FILE ---------
+{
+    "memoryFrequency": 1600,
+    "memoryType": "DDR3L"
+}
+---------- END OF FILE ----------
+
+- memoryFrequency - RAM memory frequency in MHz.
+- memoryType - RAM memory type, e.g. DDR3, DDR3L, DDR4.
+
+Please note that memory inforamtion must be taken from reliable
+system documentation.
+
+2.4 Configuration file storage.conf
+===================================
+
+Configuration file storage.conf contains information about available for user
+EEPROMs. If EEPROM doesn't contain user data area, but contains data according
+PICMG specification and this data is important for the system, this EEPROM
+also should be described in configuration file.
+
+Example of configuration file /etc/keapi/storage.conf:
+--------- START OF FILE ---------
+{
+    "storage": [
+        {
+            "path": "/dev/keapi_eeprom",
+            "type": "picmg"
+        },
+        {
+            "path": "/sys/bus/i2c/devices/3-0050/eeprom",
+            "start": "0",
+            "size": "0x400"
+        }
+    ]
+}
+---------- END OF FILE ----------
+
+Here is an array of EEPROMs. Each item in array describe one EEPROM:
+- path - describes path to binary file in system;
+- type - if EEPROM contain picmg data it should be pointed here by writing
+"picmg" type. Otherwise it will be mean that EEPROM doesn't contain picmg.
+- start - if EEPROM is non-picmg, you must specify the start offset of user's
+data.
+- size - if EEPROM is non-picmg, you must specify the size of data available
+for user beginning from start offset.
+
+If EEPROM contains valid picmg data, KEAPI will parse all tables and if
+the EEPROM also contain user data area keapi will detect this.
+So in that case not necessarily specify start offset and size of user data area.
+
+2.5 Configuration file systemstates.conf
+=========================================
+
+This configuration file describes system performance states. Overall KEAPI
+supports 16 performance states, which numerated from 0 to 15. Zero state is
+not described in configuration file as it always means maximum performance.
+
+Configuration file consist from array where each element is description of one
+state.
+
+Example of /etc/keapi/systemstates.conf:
+--------- START OF FILE ---------
+{
+    "state": [
+        {
+            "stateNum": 1,
+            "description": "CPUfreq policy set to 'userspace' and frequency set to 2100Mhz for all cores",
+            "condition": [
+                {
+                    "key": "cpugov",
+                    "value": "userspace"
+                },
+                {
+                    "key": "cpufreq",
+                    "value": "2001000"
+                }
+            ]
+        },
+        {
+            "stateNum": 2,
+            "description": "CPUfreq policy set to 'powersave' for all cores",
+            "condition": [
+                {
+                    "key": "cpugov",
+                    "value": "userspace"
+                }
+            ]
+        },
+        {
+            "stateNum": 3,
+            "description": "CPUfreq policy set to 'ondemand' for all cores",
+            "condition": [
+                {
+                    "key": "cpugov",
+                    "value": "ondemand"
+                }
+            ]
+        }
+    ]
+}
+---------- END OF FILE ----------
+
+- state - main array comprising states descriptions.
+- stateNum - order number of describing state.
+- description - human understandable description of certain state.
+- condition - array of conditions which allow KEAPI sets up system to this state
+or define that system is in that state.
+Each condition consist of pair "key" and "value"
+- key - at the moment there are two keys:
+    - cpugov - describes policy of CPU service;
+    - cpufreq - describes frequency of CPU.
+- value - if key = cpugov, value can be described as userspace, conservative,
+ondemand, performance and powersave.
+To know more about these policies please refer to Linux Kernel Documentation.
+If key = cpufreq, value can consist one of available CPU frequencies.
+
+2.6 Configuration file watchdog.conf
+=====================================
+
+Simple configuration file contains information which describes capabilities
+of a system watchdog.
+
+Example of /etc/keapi/watchdog.conf:
+--------- START OF FILE ---------
+{
+    "minTimeout": 1000,
+    "maxTimeout": 255000,
+    "wdtPath": "/dev/watchdog",
+    "wdtStyle": "linux-like"
+}
+---------- END OF FILE ----------
+
+- minTimeout - parameter specifies minimal available to setup timeout
+for watchdog trigger.
+- maxTimeout - parameter specifies maximum available to setup timeout
+for watchdog trigger.
+- wdtPath - parameter specifies path to binary file in the system. Sometimes on
+the system are several watchdogs and gives us ability to select between those.
+This is not mandatory parameter, by default KEAPI will access to /dev/watchdog.
+- wdtStyle - parameter specifies extensions abilities of watchdog.
+It maybe:
+ -- "linux-like" - means that on system is supported standard Linux watchdog
+(i.e. one stage and only RESET mode is supported);
+ -- "kontron-like-kem" - means that on system is supported Kontron KEM
+specific watchdog (i.e. 2 stages are supported and RESET mode is supported);
+ -- "kontron-like-kom" - means that on system is supported Kontron KOM
+specific watchdog (i.e. stages are supported and RESET, IRQ and TIMEOUT modes
+are supported).
+
+3.0 Description of intruder and bootcount0 symbolic links
+=========================================================
+
+KEAPI works with intrusion detector and bootcounter through standard sysfs
+interfaces, but depends of system and used drivers, binary files of intrusion
+sensor and bootcounter can be located by different paths.
+To prevent it, KEAPI make calls through intruder and bootcount0 symbolic links
+which always are in the same place in /etc/keapi:
+
+An example:
+# ls -l /etc/keapi/
+total 0
+lrwxrwxrwx 1 root root   55 Mar 18 12:44 bootcount0 -> /sys/bus/platform/devices/kt_bootcounter/kt_bootcounter
+lrwxrwxrwx 1 root root   43 Mar 18 12:44 intruder -> /sys/kernel/iTCO_intrusion/intrusion0_alarm
+
+Here we see that KEAPI will do calls to intrusion detector via standard ITCO
+driver and to bootcounter via standard kontron driver - kt_bootcounter.
