@@ -445,33 +445,46 @@ exit_close:
 
 static KEAPI_RETVAL gpio_set_levels(int32_t portNr, uint32_t Levels)
 {
-	int ret, chipfd, lfd;
-	uint32_t i;
-	struct gpiohandle_data ghd;
+	uint32_t dir_bit, i, j;
+	int ret, chipfd;
+	struct gpioline_info gli;
+	struct gpiohandle_request ghr;
 
 	ret = gpio_get_chip_dev(gpPortArr[portNr].label, &chipfd);
 	if (ret != KEAPI_RET_SUCCESS)
 		return ret;
 
-	ret = gpio_get_linehandle(chipfd, &gpPortArr[portNr], &lfd);
+	memset(&ghr, 0, sizeof(ghr));
+
+	for (i = 0, j = 0; i < gpPortArr[portNr].gpioCount; i++) {
+		gli.line_offset = gpPortArr[portNr].gpioOffs[i];
+
+		ret = ioctl(chipfd, GPIO_GET_LINEINFO_IOCTL, &gli);
+		if (ret < 0) {
+			ret = KEAPI_RET_RETRIEVAL_ERROR;
+			goto exit_close;
+		}
+
+		dir_bit = gli.flags & GPIOLINE_FLAG_IS_OUT ? 0 : 1;
+
+		if (!dir_bit) {
+			ghr.lineoffsets[j] = gpPortArr[portNr].gpioOffs[i];
+			ghr.default_values[j++] = (Levels >> i) & 0x1;
+		}
+	}
+	ghr.lines = j;
+	ghr.flags = GPIOHANDLE_REQUEST_OUTPUT;
+
+	ret = ioctl(chipfd, GPIO_GET_LINEHANDLE_IOCTL, &ghr);
 	if (ret < 0) {
 		ret = KEAPI_RET_RETRIEVAL_ERROR;
 		goto exit_close;
-	}
-	memset(&ghd, 0, sizeof(ghd));
-	for (i = 0; i < gpPortArr[portNr].gpioCount; i++) {
-		if (Levels & (1 << i))
-			ghd.values[i] = 1;
-	}
-	ret = ioctl(lfd, GPIOHANDLE_SET_LINE_VALUES_IOCTL, &ghd);
-	if (ret < 0)
-		ret = KEAPI_RET_RETRIEVAL_ERROR;
-	else
+	} else
 		ret = KEAPI_RET_SUCCESS;
 
-	close(lfd);
-
 exit_close:
+	if (ghr.fd >= 0)
+		close(ghr.fd);
 	close(chipfd);
 	return ret;
 }
