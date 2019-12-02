@@ -63,6 +63,7 @@ dkms.conf
 
 # http://www.gnu.org/software/automake
 
+Makefile
 Makefile.in
 /ar-lib
 /mdate-sh
@@ -82,6 +83,7 @@ autom4te.cache
 /config.log
 /config.status
 /config.sub
+/config.h
 /configure
 /configure.scan
 /depcomp
@@ -92,6 +94,7 @@ autom4te.cache
 # https://www.gnu.org/software/libtool/
 
 /ltmain.sh
+/libtool
 
 # http://www.gnu.org/software/texinfo
 
@@ -104,3 +107,6 @@ m4/ltoptions.m4
 m4/ltsugar.m4
 m4/ltversion.m4
 m4/lt~obsolete.m4
+
+# pkg-config
+/keapi.pc
