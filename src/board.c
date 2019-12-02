@@ -278,7 +278,7 @@ KEAPI_RETVAL KEApiL_GetBoardInfo(PKEAPI_BOARD_INFO pBoardInfo)
 			}
 
 			if ((fd = fopen(path, "rb")) != NULL) {
-				uint16_t bufsize = 1024;
+				uint16_t i, bufsize = 1024;
 				char info[bufsize], regex[KEAPI_MAX_STR];
 				pcre *re;
 				const char *error;
@@ -296,7 +296,7 @@ KEAPI_RETVAL KEApiL_GetBoardInfo(PKEAPI_BOARD_INFO pBoardInfo)
 						       NULL)) != NULL) {
 					int rd_num = 0;
 					while ((rd_num = fread(info, 1, bufsize - 1, fd)) > 0) {
-						for (int i = 0; i < bufsize; i++) {
+						for (i = 0; i < bufsize; i++) {
 							if (info[i] < 32 || info[i] > 126)
 								info[i] = ' ';
 						}
