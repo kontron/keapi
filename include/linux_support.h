@@ -10,7 +10,7 @@
 
 #include <linux/limits.h>
 
-#define KEAPI_LINUX_VERSION_MAJOR (0x05)
+#define KEAPI_LINUX_VERSION_MAJOR (0x06)
 #define KEAPI_LINUX_VERSION_MINOR (0x00)
 
 /* Linux predefined constants */
