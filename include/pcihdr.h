@@ -30076,6 +30076,8 @@ PCI_DEVTABLE PciDevTable[] = {
 	{ 0x8086, 0x9DA4, "Cannon Point-LP SPI Controller" },
 	{ 0x8086, 0x9DB0, "Cannon Point-LP PCI Express Root Port #9" },
 	{ 0x8086, 0x9DB4, "Cannon Point-LP PCI Express Root Port #13" },
+	{ 0x8086, 0x9DC5, "Cannon Point-LP Serial IO I2C Host Controller" },
+	{ 0x8086, 0x3E34, "Coffee Lake HOST and DRAM Controller" },
 	{ 0x1028, 0x089E, "Inspiron 5482" },
 	{ 0x8086, 0x9DB6, "Cannon Point-LP PCI Express Root Port #15" },
 	{ 0x8086, 0x9DB8, "Cannon Point-LP PCI Express Root Port #1" },
