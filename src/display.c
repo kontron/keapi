@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
-/* Copyright (C) 2019 Kontron AG */
+/* Copyright (C) 2019 Kontron Europe GmbH */
 
 /* Display's backlight and contrast control functions. */
 

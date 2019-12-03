@@ -10,19 +10,9 @@ option casemap:none
 ;+=========================================================================
 ;I  $HeadURL: https://sourceforge.net/p/eapidk/code/HEAD/tree/trunk/include/masm/EApiConv.inc $
 ;+=========================================================================
-;I   Copyright: Copyright (c) 2002-2009, Kontron Embedded Modules GmbH
-;I      Author: John Kearney,                  John.Kearney@kontron.com
-;I
-;I     License: All rights reserved. This program and the accompanying 
-;I              materials are licensed and made available under the 
-;I              terms and conditions of the BSD License which 
-;I              accompanies this distribution. The full text of the 
-;I              license may be found at 
-;I              http://opensource.org/licenses/bsd-license.php
-;I              
-;I              THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "
-;I              AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTATIONS OF 
-;I              ANY KIND, EITHER EXPRESS OR IMPLIED.
+;I  SPDX-License-Identifier: BSD-3-Clause
+;I  Copyright (C) 2019 Kontron Europe GmbH
+;I  Author: John Kearney, John.Kearney@kontron.com
 ;I
 ;I Description: Auto Created for EApiConv.h
 ;I
@@ -42,19 +32,9 @@ option casemap:none
 ;  *+=========================================================================
 ;  *I  $HeadURL: https://sourceforge.net/p/eapidk/code/HEAD/tree/trunk/include/masm/EApiConv.inc $
 ;  *+=========================================================================
-;  *I   Copyright: Copyright (c) 2002-2009, Kontron Embedded Modules GmbH
-;  *I      Author: John Kearney,                  John.Kearney@kontron.com
-;  *I
-;  *I     License: All rights reserved. This program and the accompanying 
-;  *I              materials are licensed and made available under the 
-;  *I              terms and conditions of the BSD License which 
-;  *I              accompanies this distribution. The full text of the 
-;  *I              license may be found at 
-;  *I              http://opensource.org/licenses/bsd-license.php
-;  *I              
-;  *I              THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "
-;  *I              AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTATIONS OF 
-;  *I              ANY KIND, EITHER EXPRESS OR IMPLIED.
+;  *I  SPDX-License-Identifier: BSD-3-Clause
+;  *I  Copyright (C) 2019 Kontron Europe GmbH
+;  *I  Author: John Kearney, John.Kearney@kontron.com
 ;  *I
 ;  *I Description: Auto Created for EApiConv.h
 ;  *I
@@ -1479,19 +1459,9 @@ EAPI_COM0_ID_GPIO_GPO3		EQU		000000007h
 ;  *+=========================================================================
 ;  *I  $HeadURL: https://sourceforge.net/p/eapidk/code/HEAD/tree/trunk/include/masm/EApiConv.inc $
 ;  *+=========================================================================
-;  *I   Copyright: Copyright (c) 2002-2009, Kontron Embedded Modules GmbH
-;  *I      Author: John Kearney,                  John.Kearney@kontron.com
-;  *I
-;  *I     License: All rights reserved. This program and the accompanying 
-;  *I              materials are licensed and made available under the 
-;  *I              terms and conditions of the BSD License which 
-;  *I              accompanies this distribution. The full text of the 
-;  *I              license may be found at 
-;  *I              http://opensource.org/licenses/bsd-license.php
-;  *I              
-;  *I              THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "
-;  *I              AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTATIONS OF 
-;  *I              ANY KIND, EITHER EXPRESS OR IMPLIED.
+;  *I  SPDX-License-Identifier: BSD-3-Clause
+;  *I  Copyright (C) 2019 Kontron Europe GmbH
+;  *I  Author: John Kearney, John.Kearney@kontron.com
 ;  *I
 ;  *I Description: Auto Created for EApiTCA.h
 ;  *I
@@ -1589,19 +1559,9 @@ EAPI_TCA_ID_I2C_LVDS_2		EQU		000000002h
 ;  *+=========================================================================
 ;  *I  $HeadURL: https://sourceforge.net/p/eapidk/code/HEAD/tree/trunk/include/masm/EApiConv.inc $
 ;  *+=========================================================================
-;  *I   Copyright: Copyright (c) 2002-2009, Kontron Embedded Modules GmbH
-;  *I      Author: John Kearney,                  John.Kearney@kontron.com
-;  *I
-;  *I     License: All rights reserved. This program and the accompanying 
-;  *I              materials are licensed and made available under the 
-;  *I              terms and conditions of the BSD License which 
-;  *I              accompanies this distribution. The full text of the 
-;  *I              license may be found at 
-;  *I              http://opensource.org/licenses/bsd-license.php
-;  *I              
-;  *I              THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "
-;  *I              AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTATIONS OF 
-;  *I              ANY KIND, EITHER EXPRESS OR IMPLIED.
+;  *I  SPDX-License-Identifier: BSD-3-Clause
+;  *I  Copyright (C) 2019 Kontron Europe GmbH
+;  *I  Author: John Kearney, John.Kearney@kontron.com
 ;  *I
 ;  *I Description: Auto Created for EApiETX.h
 ;  *I
@@ -1697,19 +1657,9 @@ EAPI_ETX_ID_I2C_LVDS_2		EQU		000000002h
 ;  *+=========================================================================
 ;  *I  $HeadURL: https://sourceforge.net/p/eapidk/code/HEAD/tree/trunk/include/masm/EApiConv.inc $
 ;  *+=========================================================================
-;  *I   Copyright: Copyright (c) 2002-2009, Kontron Embedded Modules GmbH
-;  *I      Author: John Kearney,                  John.Kearney@kontron.com
-;  *I
-;  *I     License: All rights reserved. This program and the accompanying 
-;  *I              materials are licensed and made available under the 
-;  *I              terms and conditions of the BSD License which 
-;  *I              accompanies this distribution. The full text of the 
-;  *I              license may be found at 
-;  *I              http://opensource.org/licenses/bsd-license.php
-;  *I              
-;  *I              THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "
-;  *I              AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTATIONS OF 
-;  *I              ANY KIND, EITHER EXPRESS OR IMPLIED.
+;  *I  SPDX-License-Identifier: BSD-3-Clause
+;  *I  Copyright (C) 2019 Kontron Europe GmbH
+;  *I  Author: John Kearney, John.Kearney@kontron.com
 ;  *I
 ;  *I Description: Auto Created for EApiQ7.h
 ;  *I
@@ -1804,19 +1754,9 @@ EAPI_Q7_ID_I2C_LVDS_2		EQU		000000002h
 ;  *+=========================================================================
 ;  *I  $HeadURL: https://sourceforge.net/p/eapidk/code/HEAD/tree/trunk/include/masm/EApiConv.inc $
 ;  *+=========================================================================
-;  *I   Copyright: Copyright (c) 2002-2009, Kontron Embedded Modules GmbH
-;  *I      Author: John Kearney,                  John.Kearney@kontron.com
-;  *I
-;  *I     License: All rights reserved. This program and the accompanying 
-;  *I              materials are licensed and made available under the 
-;  *I              terms and conditions of the BSD License which 
-;  *I              accompanies this distribution. The full text of the 
-;  *I              license may be found at 
-;  *I              http://opensource.org/licenses/bsd-license.php
-;  *I              
-;  *I              THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "
-;  *I              AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTATIONS OF 
-;  *I              ANY KIND, EITHER EXPRESS OR IMPLIED.
+;  *I  SPDX-License-Identifier: BSD-3-Clause
+;  *I  Copyright (C) 2019 Kontron Europe GmbH
+;  *I  Author: John Kearney, John.Kearney@kontron.com
 ;  *I
 ;  *I Description: Auto Created for EApiMOPS.h
 ;  *I
@@ -1911,19 +1851,9 @@ EAPI_MOPS_ID_I2C_LVDS_2		EQU		000000002h
 ;  *+=========================================================================
 ;  *I  $HeadURL: https://sourceforge.net/p/eapidk/code/HEAD/tree/trunk/include/masm/EApiConv.inc $
 ;  *+=========================================================================
-;  *I   Copyright: Copyright (c) 2002-2009, Kontron Embedded Modules GmbH
-;  *I      Author: John Kearney,                  John.Kearney@kontron.com
-;  *I
-;  *I     License: All rights reserved. This program and the accompanying 
-;  *I              materials are licensed and made available under the 
-;  *I              terms and conditions of the BSD License which 
-;  *I              accompanies this distribution. The full text of the 
-;  *I              license may be found at 
-;  *I              http://opensource.org/licenses/bsd-license.php
-;  *I              
-;  *I              THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "
-;  *I              AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTATIONS OF 
-;  *I              ANY KIND, EITHER EXPRESS OR IMPLIED.
+;  *I  SPDX-License-Identifier: BSD-3-Clause
+;  *I  Copyright (C) 2019 Kontron Europe GmbH
+;  *I  Author: John Kearney, John.Kearney@kontron.com
 ;  *I
 ;  *I Description: Auto Created for EApiPISA.h
 ;  *I
@@ -2018,19 +1948,9 @@ EAPI_PISA_ID_I2C_LVDS_2		EQU		000000002h
 ;  *+=========================================================================
 ;  *I  $HeadURL: https://sourceforge.net/p/eapidk/code/HEAD/tree/trunk/include/masm/EApiConv.inc $
 ;  *+=========================================================================
-;  *I   Copyright: Copyright (c) 2002-2009, Kontron Embedded Modules GmbH
-;  *I      Author: John Kearney,                  John.Kearney@kontron.com
-;  *I
-;  *I     License: All rights reserved. This program and the accompanying 
-;  *I              materials are licensed and made available under the 
-;  *I              terms and conditions of the BSD License which 
-;  *I              accompanies this distribution. The full text of the 
-;  *I              license may be found at 
-;  *I              http://opensource.org/licenses/bsd-license.php
-;  *I              
-;  *I              THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "
-;  *I              AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTATIONS OF 
-;  *I              ANY KIND, EITHER EXPRESS OR IMPLIED.
+;  *I  SPDX-License-Identifier: BSD-3-Clause
+;  *I  Copyright (C) 2019 Kontron Europe GmbH
+;  *I  Author: John Kearney, John.Kearney@kontron.com
 ;  *I
 ;  *I Description: Auto Created for EApiEPIC.h
 ;  *I

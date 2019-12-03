@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
-/* Copyright (C) 2019 Kontron AG */
+/* Copyright (C) 2019 Kontron Europe GmbH */
 
 /* Fan monitoring and control functions. */
 
