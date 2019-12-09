@@ -1,0 +1,2 @@
+*.h linguist-language=C
+include/eapi/masm/{*.h,*.inc} linguist-language=Assembly
