@@ -2,6 +2,8 @@ AUTOMAKE_OPTIONS = subdir-objects
 
 ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS} -I m4
 
+EXTRA_DIST = CHANGES LICENSE README.md
+
 AM_CPPFLAGS = -I$(srcdir)/include -I$(srcdir)/src
 
 lib_LTLIBRARIES = libkeapi.la libEApi.la libjida.la
