@@ -34,11 +34,7 @@ Libraries:
 
 ```bash
 # Configure with autoconf
-libtoolize --force
-aclocal
-autoheader
-automake --force-missing --add-missing
-autoconf
+autoreconf --install
 ./configure --prefix=/usr ${CONFIGURE_FLAGS}
 
 # Build and install
@@ -53,11 +49,7 @@ make install
 source /opt/poky/<version>/environment-setup-armv7vehf-neon-poky-linux-gnueabi
 
 # Configure with autoconf
-libtoolize --force
-aclocal
-autoheader
-automake --force-missing --add-missing
-autoconf
+autoreconf --install
 ./configure --build=x86_64-linux-gnu \
             --host=arm-poky-linux-gnueabi \
             --prefix=/usr ${CONFIGURE_FLAGS}
