@@ -1,3 +1,5 @@
+![Build Status](https://github.com/kontron/keapi/workflows/Build/badge.svg)
+
 # Kontron Embedded API
 
 A software library that enables programmers to easily create their applications
