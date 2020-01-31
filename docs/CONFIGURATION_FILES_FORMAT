@@ -67,7 +67,7 @@ Example of /etc/keapi/backlight.conf:
 /sys/class/backlight/acpi_video0
 ---------- END OF FILE ----------
 
- In the system we also have intel backlight driver which controls backlight
+ In the system we also have Intel backlight driver which controls backlight
  for the same display, but in this file we specify that KEAPI will be use
  default acpi backlight driver.
 
@@ -461,7 +461,7 @@ Example of /etc/keapi/systemstates.conf:
                 },
                 {
                     "key": "cpufreq",
-                    "value": "2001000"
+                    "value": "2100000"
                 }
             ]
         },
@@ -471,7 +471,7 @@ Example of /etc/keapi/systemstates.conf:
             "condition": [
                 {
                     "key": "cpugov",
-                    "value": "userspace"
+                    "value": "powersave"
                 }
             ]
         },
