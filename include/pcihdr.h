@@ -17179,6 +17179,8 @@ PCI_DEVTABLE PciDevTable[] = {
 	{ 0x126F, 0x0811, "SM811 LynxE" },
 	{ 0x126F, 0x0820, "SM820 Lynx3D" },
 	{ 0x126F, 0x0910, "SM910" },
+	{ 0x126F, 0x2263, "SM2263EN/XT NVMe SSD Controller" },
+	{ 0x1179, 0x011A, "Toshiba NVMe SSD Controller" },
 	{ 0x1273, 0x0002, "DirecPC" },
 	{ 0x1274, 0x1171, "ES1373 / Creative Labs CT5803 [AudioPCI]" },
 	{ 0x1274, 0x1371, "ES1371/ES1373 / Creative Labs CT2518" },
