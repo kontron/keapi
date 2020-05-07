@@ -279,15 +279,44 @@ static KEAPI_RETVAL gpio_get_chip_dev(char *label, int *retfd)
 	return KEAPI_RET_RETRIEVAL_ERROR;
 }
 
+static KEAPI_RETVAL gpio_get_linehandle(int chipfd, struct GpioPortInfo *pPort, int *retfd)
+{
+	int ret;
+	uint32_t i;
+	struct gpiohandle_request ghr;
+
+	memset(&ghr, 0, sizeof(ghr));
+
+	for (i = 0; i < pPort->gpioCount; i++) {
+		ghr.lineoffsets[i] = pPort->gpioOffs[i];
+	}
+	ghr.lines = i;
+
+	ret = ioctl(chipfd, GPIO_GET_LINEHANDLE_IOCTL, &ghr);
+	if (ret < 0)
+		return KEAPI_RET_RETRIEVAL_ERROR;
+
+	*retfd = ghr.fd;
+
+	return KEAPI_RET_SUCCESS;
+}
+
 static KEAPI_RETVAL gpio_get_directions(int32_t portNr, uint32_t *pDirections)
 {
-	int ret, chipfd;
+	int ret, chipfd, lfd;
 	uint32_t dir_bit, i;
 	struct gpioline_info gli;
 
 	ret = gpio_get_chip_dev(gpPortArr[portNr].label, &chipfd);
 	if (ret != KEAPI_RET_SUCCESS)
 		return ret;
+
+	ret = gpio_get_linehandle(chipfd, &gpPortArr[portNr], &lfd);
+	if (ret < 0) {
+		ret = KEAPI_RET_RETRIEVAL_ERROR;
+		goto exit_close;
+	}
+	close(lfd);
 
 	for (i = 0; i < gpPortArr[portNr].gpioCount; i++) {
 		gli.line_offset = gpPortArr[portNr].gpioOffs[i];
@@ -310,7 +339,7 @@ exit_close:
 
 static KEAPI_RETVAL gpio_set_directions(int32_t portNr, uint32_t directions)
 {
-	int ret, chipfd, j;
+	int ret, chipfd, j, lfd;
 	uint32_t dir_bit, set_in, set_out, old_directions = 0, i;
 	struct gpioline_info gli;
 	struct gpiohandle_request ghr;
@@ -321,6 +350,13 @@ static KEAPI_RETVAL gpio_set_directions(int32_t portNr, uint32_t directions)
 	ret = gpio_get_chip_dev(gpPortArr[portNr].label, &chipfd);
 	if (ret != KEAPI_RET_SUCCESS)
 		return ret;
+
+	ret = gpio_get_linehandle(chipfd, &gpPortArr[portNr], &lfd);
+	if (ret < 0) {
+		ret = KEAPI_RET_RETRIEVAL_ERROR;
+		goto exit_close;
+	}
+	close(lfd);
 
 	for (i = 0; i < gpPortArr[portNr].gpioCount; i++) {
 		gli.line_offset = gpPortArr[portNr].gpioOffs[i];
@@ -382,28 +418,6 @@ exit_close:
 
 	close(chipfd);
 	return ret;
-}
-
-static KEAPI_RETVAL gpio_get_linehandle(int chipfd, struct GpioPortInfo *pPort, int *retfd)
-{
-	int ret;
-	uint32_t i;
-	struct gpiohandle_request ghr;
-
-	memset(&ghr, 0, sizeof(ghr));
-
-	for (i = 0; i < pPort->gpioCount; i++) {
-		ghr.lineoffsets[i] = pPort->gpioOffs[i];
-	}
-	ghr.lines = i;
-
-	ret = ioctl(chipfd, GPIO_GET_LINEHANDLE_IOCTL, &ghr);
-	if (ret < 0)
-		return KEAPI_RET_RETRIEVAL_ERROR;
-
-	*retfd = ghr.fd;
-
-	return KEAPI_RET_SUCCESS;
 }
 
 static KEAPI_RETVAL gpio_get_levels(int32_t portNr, uint32_t *pLevels)
