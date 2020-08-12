@@ -199,9 +199,23 @@ KEAPI_RETVAL KEApiL_StorageWrite(int32_t storageNr, int32_t offset, uint8_t *pDa
 		return KEAPI_RET_WRITE_ERROR;
 	}
 
-	if (write(fd, pData, dataLength) != dataLength) {
-		close(fd);
-		return KEAPI_RET_WRITE_ERROR;
+	{
+		int offset = 0;
+		int nBytes = 0;
+
+		for (;;) {
+			nBytes = write(fd, (void *)&pData[offset], dataLength);
+			if (nBytes == dataLength)
+				break;
+			else {
+				if (nBytes == -1) {
+					close(fd);
+					return KEAPI_RET_WRITE_ERROR;
+				}
+				dataLength -= nBytes;
+				offset += nBytes;
+			}
+		}
 	}
 
 	close(fd);
