@@ -128,10 +128,22 @@ KEAPI_RETVAL KEApiL_StorageRead(int32_t storageNr, int32_t offset, uint8_t *pDat
 		return KEAPI_RET_READ_ERROR;
 	}
 
-	if (read(fd, pData, dataLength) != dataLength) {
-		memset(pData, 0, dataLength);
-		close(fd);
-		return KEAPI_RET_READ_ERROR;
+	{
+		int offset = 0;
+		int nBytes = 0;
+		for (;;) {
+			nBytes = read(fd, (void *)&pData[offset], dataLength);
+			if (nBytes == dataLength)
+				break;
+			else {
+				if (nBytes == -1) {
+					close(fd);
+					return KEAPI_RET_READ_ERROR;
+				}
+				dataLength -= nBytes;
+				offset += nBytes;
+			}
+		}
 	}
 
 	close(fd);
