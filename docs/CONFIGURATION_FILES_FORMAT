@@ -15,6 +15,7 @@ Content
 2.4 Configuration file storage.conf
 2.5 Configuration file systemstates.conf
 2.6 Configuration file watchdog.conf
+2.7 Configuration file led.conf
 3.0 Description of intruder and bootcount0 symbolic links
 
 1.0 Overview
@@ -32,6 +33,7 @@ In general can be used the following files:
 - storage.conf
 - systemstates.conf
 - watchdog.conf
+- led.conf (addon)
 
 All files are placed in the "/etc/keapi" directory of target file system.
 
@@ -136,13 +138,14 @@ An example /etc/keapi/gpio.conf in case of modern access ("keapi-full"):
 ---------- END OF FILE ----------
 
 - gpioStyle - describes access method to GPIO pins.
-It may be "keapi-full", "linux-like" or "kontron-like-kem".
+It may be "keapi-full", "linux-like", "kontron-like-kem" or "EN01_152".
 "keapi-full" (available for kernel versions starting from 4.4) - modern access
 method will be used (see the example below).
 "linux-like" - means that old access method to GPIO will be used
 and all GPIO pins are described as one pin per port in the configuration file.
 "kontron-like-kem" - enhanced "linux-like" method makes able group access
 through SysFs.
+"EN01_152" - use the "EN01-152" GPIO card; the values of gpioPort are ignored
 All GPIO pins should be described according to their h/w and driver specifics.
 - gpioPort - array of ports descriptions.
 - portNumber - is not parsed by library and is used as visual delimiter in
@@ -333,6 +336,28 @@ An example /etc/keapi/gpio.conf:
     ]
 }
 ---------- END OF FILE ----------
+
+2.1.4 "EN01_152" access method. One port with 8 GPIO 
+=====================================================
+This is an access method assumes the EB01-152 GPIO card. 
+The 8 GPIO pin works as input as well as output (details see hardware manual).
+The config structure is like "keapi-full". But only 1 port with the 8 GPIO is supported.
+
+An example /etc/keapi/gpio.conf:
+--------- START OF FILE ---------
+{
+    "gpioStyle": "EN01_152",
+    "gpioPort": [
+        {
+            "portNumber": 0,
+            "label": "EN01-0152",
+            "gpio": [
+            ]
+        }
+    ]
+}
+---------- END OF FILE ----------
+
 
 2.2 Configuration files i2c.conf and smbus.conf
 ============================================
@@ -535,6 +560,49 @@ specific watchdog (i.e. 2 stages are supported and RESET mode is supported);
  -- "kontron-like-kom" - means that on system is supported Kontron KOM
 specific watchdog (i.e. stages are supported and RESET, IRQ and TIMEOUT modes
 are supported).
+
+2.7 Configuration file led.conf
+================================
+
+This configuration file describes leds. Overall KEAPI-ADDON supports 16 LEDs, which numerated from 0 to 15. 
+Mode "blinking" and "flashing" are not supported.
+
+
+Example of /etc/keapi/led.conf:
+--------- START OF FILE ---------
+    "ledPort": [
+        {
+            "portNumber": 0,
+            "label": "komdrv-led",
+            "led": [
+                {
+                    "ledIdx": 0,
+                    "ledName": "LED0:green",
+                    "ledMode": 0,
+                    "ledColour": 4,
+                    "ledCtrl": 0
+                },
+                {
+                    "ledIdx": 1,
+                    "ledName": "LED0:red",
+                    "ledMode": 0,
+                    "ledColour": 1,
+                    "ledCtrl": 0
+                }
+            ]
+        }
+    ]
+}
+---------- END OF FILE ----------
+- portNumber - is not parsed by library and is used as visual delimiter in
+configuration file in array of several ports (any JSON compatible fake
+parameter may be used for that purpose).
+- ledIdx    - index of the led, start with "0"
+- ledName   - name of the LED in the SysFs
+- ledMode   - 0: permanent; (1:blinking 2:flashing not supported)
+- ledColour - define color (values defined in the API)
+- ledCtrl   - 0:USER-mode (System-mode not supported)
+
 
 3.0 Description of intruder and bootcount0 symbolic links
 =========================================================

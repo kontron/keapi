@@ -51,6 +51,7 @@ struct GpioPortInfo {
 	 * if gpioStye=KEAPI_FULL - stores gpios offsets in the particular gpio device,
 	 * if gpioStye=LINUX_LIKE - stores in gpioOffs[0] the gpio pin number in SysFs,
 	 * if gpioStye=KONTRON_LIKE_KEM - stores gpios pin numbers in SysFs.
+	 * if gpioStye=EN01_152 - use internal commends to to handle this special kontron IO-Module.
 	 */
 	uint32_t gpioOffs[GPIO_PER_PORT];
 	char label[KEAPI_MAX_STR];

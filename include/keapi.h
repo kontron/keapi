@@ -1347,6 +1347,76 @@ KEAPI_CALLTYPE KEAPI_RETVAL KEApiWatchdogClearExpired (KEAPI_PRM_VOID);
 
 KEAPI_CALLTYPE KEAPI_RETVAL KEApiWatchdogWaitUntilExpired (KEAPI_PRM_VOID);
 
+/*/////////////////////////////////////////////////////////////////////////////
+ // ADDON LED
+ ///////////////////////////////////////////////////////////////////////////// */
+/*!
+ \brief          reading number of LEDs
+
+ \param[out]     pLedCount number of LEDs from this device
+ \return
+ * - KEAPI_RET_SUCCESS on success
+ * - KEAPI_RET_NOT_INITIALIZED when library is not initialized
+ */
+KEAPI_CALLTYPE KEAPI_RETVAL KEApiLedGetCount(KEAPI_PRM_START
+    int32_t *pLedCount);
+
+/*!
+ \brief          reding LED status
+
+ \param[in]      ledNb   index of LED (0..MAX_NB_LED-1)
+ \param[out]     pStatus 0:off 1:on
+ \return
+ * - KEAPI_RET_SUCCESS on success
+ * - KEAPI_RET_NOT_INITIALIZED when library is not initialized
+ */
+KEAPI_CALLTYPE KEAPI_RETVAL KEApiLedGetStatus(KEAPI_PRM_START
+    int32_t ledNb, int32_t *pStatus);
+
+/*!
+ \brief          setting LED
+
+ \param[in]      ledNb  index of LED (0..MAX_NB_LED-1)
+ \param[in]      status 0:off 1:on
+ \return
+ * - KEAPI_RET_SUCCESS on success
+ * - KEAPI_RET_NOT_INITIALIZED when library is not initialized
+ */
+KEAPI_CALLTYPE KEAPI_RETVAL KEApiLedSetStatus(KEAPI_PRM_START
+    int32_t ledNb, int32_t status);
+
+typedef struct Keapi_LED_Config {
+	uint32_t Colour; /* 1:RED 2:YELLOW 4:GREEN 8:BLUE 0x10:WHITE 0x300:AMPER 0x10000000:RGB  */
+	uint32_t Light; /* 0:LIGHT_PERMANENT       unsupported 1:BLINKING 2:FLASHING  */
+	uint32_t Mode; /* 0:user mode 1:system mode */
+	uint32_t TOn; /* only for blinking/flashing */
+	uint32_t TOff; /* only for blinking/flashing  */
+} KEAPI_LED_CONFIG, *PKEAPI_LED_CONFIG;
+
+/*!
+ \brief          setting status of LED
+
+ \param[in]      ledNb  index of LED (0..MAX_NB_LED-1)
+ \param[in]      Config KEAPI_LED_CONFIG structure representing configuration of LED
+ \return
+ * - KEAPI_RET_SUCCESS on success
+ * - KEAPI_RET_NOT_INITIALIZED when library is not initialized
+ */
+KEAPI_CALLTYPE KEAPI_RETVAL KEApiLedSetConfig(KEAPI_PRM_START
+    int32_t ledNb, KEAPI_LED_CONFIG Config);
+
+/*!
+ \brief          getting status of LED
+
+ \param[in]      ledNb  index of LED (0..MAX_NB_LED-1)
+ \param[out]     pConfig return PKEAPI_LED_CONFIG structure; representing configuration of LED
+ \return
+ * - KEAPI_RET_SUCCESS on success
+ * - KEAPI_RET_NOT_INITIALIZED when library is not initialized
+ */
+KEAPI_CALLTYPE KEAPI_RETVAL KEApiLedGetConfig(KEAPI_PRM_START
+    int32_t ledNb, PKEAPI_LED_CONFIG pConfig);
+
 #ifdef __cplusplus
 } // #ifdef __cplusplus
 #endif

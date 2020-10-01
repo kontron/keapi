@@ -61,7 +61,8 @@ enum FeatureStyle {
 	LINUX_LIKE = 1,
 	KONTRON_LIKE_KEM,
 	KONTRON_LIKE_KOM,
-	KEAPI_FULL
+	KEAPI_FULL,
+    EN01_152
 };
 
 /* Linux helper functions */

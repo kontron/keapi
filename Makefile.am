@@ -34,6 +34,7 @@ libkeapi_la_CFLAGS = -Wall -Wextra -Wno-stringop-truncation -Wno-format-truncati
 libkeapi_la_LDFLAGS = $(KEAPI_VERSION_INFO)
 libkeapi_la_SOURCES = \
 	$(COMMON_SRCS) \
+	src/addon.c \
 	src/globals.c \
 	src/battery.c \
 	src/board.c \

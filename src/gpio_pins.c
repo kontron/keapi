@@ -8,6 +8,8 @@
 #include <dirent.h>
 #include <string.h>
 #include <jansson.h>
+#include <errno.h>
+#include <termios.h>
 
 #include "keapi_inc.h"
 #include "globals.h"
@@ -19,6 +21,163 @@
 #include <linux/gpio.h>
 #define _USE_KEAPI_FULL
 #endif
+
+#define PRINTK_DEBUG
+
+/* Settings for the EN01-152 Kontron-USB-GPIO module */
+// 8 GPIO index 0..7
+#define NB_GPIO 8
+#define SER_DEVICE "/dev/ttyACM0"
+#define SER_BAUD   57600
+
+// Message start [1-3]:"<0F" 
+//    [4]messageType [5-6]commandCode [7-8] Length 
+//  End ">" <CR> >LF>
+#define CmdMessage   "<0F%01d%02d%02d>"
+
+#define CmdFwVers    "<0F10000>\r\n"
+#define CmdBoardInfo "<0F10100>\r\n"
+#define CmdReadInput "<0F11000>\r\n"
+#define CmdGetOutput "<0F12000>\r\n"
+
+// CmdSetOutput "<0F12004mmoo>"
+#define CmdSetOutput "<0F12004%02lx%02lx>\r\n"
+
+int setupSerial(int speed)
+{
+    int fd;
+    struct termios tty;
+     
+    fd = open(SER_DEVICE, O_RDWR | O_NOCTTY);	/* O_RDWR   - Read/Write access to serial port       */
+                                                /* O_NOCTTY - No terminal will control the process   */
+                                                /* Open in blocking mode,read will wait              */
+   	if(fd == -1)	{
+        printf(" open Error! %s\n", SER_DEVICE);
+        return -1;
+    }
+
+    if (tcgetattr (fd, &tty) != 0)
+    {
+           printf ("error %d from tcgetattr", errno);
+           return -1;
+    }
+
+    cfsetospeed (&tty, speed);
+    cfsetispeed (&tty, speed);
+
+    tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS8;     // 8-bit chars
+    // disable IGNBRK for mismatched speed tests; otherwise receive break
+     // as \000 chars
+    tty.c_iflag &= ~IGNBRK;         // disable break processing
+    tty.c_lflag = 0;                // no signaling chars, no echo,
+                                    // no canonical processing
+    tty.c_oflag = 0;                // no remapping, no delays
+    tty.c_cc[VMIN]  = 0;            // read doesn't block
+    tty.c_cc[VTIME] = 5;            // 0.5 seconds read timeout
+
+    tty.c_iflag &= ~(IXON | IXOFF | IXANY); // shut off xon/xoff ctrl
+
+    tty.c_cflag |= (CLOCAL | CREAD);// ignore modem controls,
+                                    // enable reading
+    tty.c_cflag &= ~(PARENB | PARODD);      // shut off parity
+    tty.c_cflag &= ~CSTOPB;
+    tty.c_cflag &= ~CRTSCTS;
+
+    if (tcsetattr (fd, TCSANOW, &tty) != 0)
+    {
+        printf ("error %d from tcsetattr\n", errno);
+        return -1;
+    }
+     return fd;
+}  
+
+int gpiotoint (char *buffer)
+{
+    char output[8];
+    int i;   
+    
+    output[0] = 0x30;   /* '0' */ output[1] = 'X';
+    output[2] = buffer[0]; output[3] = buffer[1]; output[4] = '\0'; 
+    i = (int)(strtol)(output, NULL, 0);    
+    return i;
+}
+
+void debugBuffer (int myDebug, char *string, char *buffer, int bufferLength)
+{
+  if (myDebug == 0)
+      return; 
+  // cut last 2 char if == \n or \r
+  if (bufferLength >2)
+    if ( (buffer[bufferLength -2] == '\n') || (buffer[bufferLength -2] == '\r'))
+        buffer[bufferLength -2] ='\0';
+  printf("%s NbBytes:%d buffer:%s\n", string, bufferLength, buffer); 
+} 
+
+
+
+int gpioGetInputs (int *inputVal)
+{
+    char buffer[32];   /* Buffer to store the data received */
+    int bytesRead, fd;
+
+    if ((fd = setupSerial(SER_BAUD)) == -1)
+        return -1;
+    
+    if (write (fd, CmdReadInput, strlen(CmdReadInput)) == -1)
+        return -1;
+        
+    bytesRead = read (fd, &buffer, 32); /* Read the response  */
+#ifdef PRINTK_DEBUG
+    debugBuffer (1, "gpioGetInputs",  buffer, bytesRead);
+#endif			
+    *inputVal = gpiotoint (&buffer[8]);
+    close (fd);
+    return 0;        
+}
+
+int gpioGetOutputs (uint32_t *outValue)
+{
+    char buffer[32];   /* Buffer to store the data received */
+    int bytesRead, fd;
+
+    if ((fd = setupSerial(SER_BAUD)) == -1)
+        return -1;
+    
+    if (write (fd, CmdGetOutput, strlen(CmdGetOutput)) == -1)
+        return -1;
+        
+    bytesRead = read (fd, &buffer, 32); /* Read the data                   */
+#ifdef PRINTK_DEBUG
+    debugBuffer (1, "gpioGetOutputs",  buffer, bytesRead);
+#endif    
+    *outValue = (uint32_t)gpiotoint (&buffer[8]);
+   
+    close (fd);
+    return 0;           
+}
+
+int gpioSetOutput (long mask, long value) 
+{
+    char buffer[32];   /* Buffer to store the data received */ 
+    int bytesRead, fd;
+    
+    if ((fd = setupSerial(SER_BAUD)) == -1)
+        return -1;
+    
+    sprintf (buffer, CmdSetOutput, mask, value);   
+    if (write (fd, buffer, strlen(buffer)) == -1)
+        return -1;
+    
+    bytesRead = read (fd, &buffer, 32); /* Read response  */
+		
+#ifdef PRINTK_DEBUG
+    debugBuffer (1, "gpioSetOutput response",  buffer, bytesRead);
+#endif
+    close (fd);
+    return 0;               
+}
+
+
 
 #define BIT(nr) (1 << (nr))
 /******************************************************************************/
@@ -50,10 +209,16 @@ static uint32_t GetGpioConfig(void)
 
 	strcpy(bufstr, json_string_value(data));
 
+#ifdef PRINTK_DEBUG
+printf ("GetGpioConfig: gpioStyle %s\n", bufstr);
+#endif
 	if (strcmp(bufstr, "linux-like") == 0)
 		gpioStyle = LINUX_LIKE;
 	else if (strcmp(bufstr, "kontron-like-kem") == 0) {
 		gpioStyle = KONTRON_LIKE_KEM;
+    }else if (strcmp(bufstr, "EN01_152") == 0) {
+		gpioStyle = EN01_152;
+        gpPortArrCount = 1; 
 	} else if (strcmp(bufstr, "keapi-full") == 0) {
 #ifdef _USE_KEAPI_FULL
 		gpioStyle = KEAPI_FULL;
@@ -63,6 +228,12 @@ static uint32_t GetGpioConfig(void)
 #endif
 	} else
 		goto exit;
+    
+#ifdef PRINTK_DEBUG
+printf ("GetGpioConfig: gpioStyle %d == %d\n", gpioStyle, EN01_152);
+#endif    
+    if (gpioStyle == EN01_152)
+        return KEAPI_RET_SUCCESS;
 
 	jGpPortArr = json_object_get(root, "gpioPort");
 	if (!json_is_array(jGpPortArr))
@@ -150,7 +321,7 @@ static uint32_t GetGpioConfig(void)
 
 	ret = KEAPI_RET_SUCCESS;
 
-	data = json_object_get(root, "UNEXPORT");
+	data = json_object_get(root, "UNEXPgpioStyleORT");
 	if (!json_is_string(data))
 		goto exit;
 
@@ -198,7 +369,7 @@ KEAPI_RETVAL KEApiL_GetGpioPortCount(int32_t *pCount)
 	/* Check function parameters */
 	if (pCount == NULL)
 		return KEAPI_RET_PARAM_NULL;
-
+    
 	*pCount = 0;
 	if (gpPortArr == NULL || gpPortArrCount == 0) {
 		if ((ret = GetGpioConfig()) != KEAPI_RET_SUCCESS) {
@@ -210,6 +381,11 @@ KEAPI_RETVAL KEApiL_GetGpioPortCount(int32_t *pCount)
 			return ret;
 		}
 	}
+	
+    if (gpioStyle == EN01_152) {
+        *pCount = NB_GPIO;
+        return KEAPI_RET_SUCCESS;
+    }	
 
 #ifndef _USE_KEAPI_FULL
 	if ((gpioStyle != LINUX_LIKE) && (gpioStyle != KONTRON_LIKE_KEM))
@@ -235,9 +411,15 @@ KEAPI_RETVAL KEApiL_GetGpioPortDirectionCaps(int32_t portNr, uint32_t *pIns, uin
 
 	if (portNr < 0 || portNr >= gpPortArrCount)
 		return KEAPI_RET_PARAM_ERROR;
-
-	*pIns = gpPortArr[portNr].isIn;
-	*pOuts = gpPortArr[portNr].isOut;
+    
+    if (gpioStyle == EN01_152)    {
+        gpioGetOutputs (pOuts);
+	    *pIns = ~(*pOuts) & 0xff;
+    }
+    else {
+        *pIns = gpPortArr[portNr].isIn;
+        *pOuts = gpPortArr[portNr].isOut;
+    }
 
 	return KEAPI_RET_SUCCESS;
 }
@@ -845,7 +1027,14 @@ KEAPI_RETVAL KEApiL_GetGpioPortDirections(int32_t portNr, uint32_t *pDirections)
 	if (gpioStyle == KEAPI_FULL)
 		return gpio_get_directions(portNr, pDirections);
 #endif
-
+    
+    if (gpioStyle == EN01_152)
+    {
+        gpioGetOutputs (pDirections);
+        *pDirections = ~(*pDirections) & 0xFF;
+        return KEAPI_RET_SUCCESS;
+    }
+    
 	if (gpioStyle == LINUX_LIKE || gpioStyle == KONTRON_LIKE_KEM)
 		return linux_gpio_get_directions(portNr, pDirections);
 	else
@@ -853,7 +1042,7 @@ KEAPI_RETVAL KEApiL_GetGpioPortDirections(int32_t portNr, uint32_t *pDirections)
 }
 
 /******************************************************************************/
-KEAPI_RETVAL KEApiL_SetGpioPortDirections(int32_t portNr, uint32_t directions)
+KEAPI_RETVAL KEApiL_SetGpioPortDirections(int32_t portNr, uint32_t directions)   
 {
 	uint32_t dir_out;
 	int32_t devCnt, ret;
@@ -893,7 +1082,9 @@ KEAPI_RETVAL KEApiL_GetGpioPortLevels(int32_t portNr, uint32_t *pLevels)
 
 	if ((ret = KEApiL_GetGpioPortCount(&devCnt)) != KEAPI_RET_SUCCESS)
 		return ret;
-
+#ifdef PRINTK_DEBUG
+printf ("KEApiL_GetGpioPortLevels: portNr %d gpPortArrCount:%d\n", portNr, gpPortArrCount);
+#endif
 	if (portNr < 0 || portNr >= gpPortArrCount)
 		return KEAPI_RET_PARAM_ERROR;
 
@@ -903,6 +1094,9 @@ KEAPI_RETVAL KEApiL_GetGpioPortLevels(int32_t portNr, uint32_t *pLevels)
 	if (gpioStyle == KEAPI_FULL)
 		return gpio_get_levels(portNr, pLevels);
 #endif
+    if (gpioStyle == EN01_152)
+        return (gpioGetOutputs (pLevels));
+
 
 	if (gpioStyle == LINUX_LIKE || gpioStyle == KONTRON_LIKE_KEM)
 		return linux_gpio_get_levels(portNr, pLevels);
@@ -923,8 +1117,9 @@ KEAPI_RETVAL KEApiL_SetGpioPortLevels(int32_t portNr, uint32_t levels)
 		return KEAPI_RET_PARAM_ERROR;
 
 #ifdef _USE_KEAPI_FULL
-	if (gpioStyle == KEAPI_FULL)
+	if (gpioStyle == KEAPI_FULL)   {
 		return gpio_set_levels(portNr, levels);
+    }
 #endif
 
 	if (gpioStyle == LINUX_LIKE || gpioStyle == KONTRON_LIKE_KEM)
