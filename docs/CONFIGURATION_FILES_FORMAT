@@ -16,6 +16,7 @@ Content
 2.5 Configuration file systemstates.conf
 2.6 Configuration file watchdog.conf
 2.7 Configuration file led.conf
+2.8 Configuration file reset.conf
 3.0 Description of intruder and bootcount0 symbolic links
 
 1.0 Overview
@@ -567,6 +568,11 @@ are supported).
 This configuration file describes leds. Overall KEAPI-ADDON supports 16 LEDs, which numerated from 0 to 15. 
 Mode "blinking" and "flashing" are not supported.
 
+A bicolour LED may be configured as:
+* 2 LEDs with 2 colours (like linux SYS-FS)
+* 1 LED with 2 names and 2 Colours
+(only bicolour red+green = amber supported)
+
 
 Example of /etc/keapi/led.conf:
 --------- START OF FILE ---------
@@ -578,15 +584,15 @@ Example of /etc/keapi/led.conf:
                 {
                     "ledIdx": 0,
                     "ledName": "LED0:green",
-                    "ledMode": 0,
                     "ledColour": 4,
+                    "ledMode": 0,
                     "ledCtrl": 0
                 },
                 {
                     "ledIdx": 1,
                     "ledName": "LED0:red",
-                    "ledMode": 0,
                     "ledColour": 1,
+                    "ledMode": 0,
                     "ledCtrl": 0
                 }
             ]
@@ -594,15 +600,51 @@ Example of /etc/keapi/led.conf:
     ]
 }
 ---------- END OF FILE ----------
+or 
+--------- START OF FILE ---------
+    "ledPort": [
+        {
+            "portNumber": 0,
+            "label": "komdrv-led",
+            "led": [
+                {
+                    "ledIdx": 0,
+                    "ledName": "LED0:green",
+                    "ledColour": 4,
+                    "led2Name": "LED0:red",
+                    "led2Colour": 1,
+                    "ledMode": 0,
+                    "ledCtrl": 0
+                }
+            ]
+        }
+    ]
+}
+---------- END OF FILE ----------
+
 - portNumber - is not parsed by library and is used as visual delimiter in
 configuration file in array of several ports (any JSON compatible fake
 parameter may be used for that purpose).
 - ledIdx    - index of the led, start with "0"
 - ledName   - name of the LED in the SysFs
+- ledColour - define color (values defined in the API)
+(optional -led2Name -led2Colour 
 - ledMode   - 0: permanent; (1:blinking 2:flashing not supported)
 - ledColour - define color (values defined in the API)
 - ledCtrl   - 0:USER-mode (System-mode not supported)
 
+2.8 Configuration file reset.conf
+This table is used to set the defined KEAPI-error-bits from the input of the CPLD.
+Attention: the error values have to be defines in a string notation;
+
+e.g the CPLD error-Bit is the defined KEAPI ERROR 0x00001
+--------- START OF FILE --------
+    "error": [
+        {
+            "CPLD": "0x80",
+            "KEAPI": "0x01"
+        }
+---------- END OF FILE ----------
 
 3.0 Description of intruder and bootcount0 symbolic links
 =========================================================
