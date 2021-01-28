@@ -1362,7 +1362,7 @@ KEAPI_CALLTYPE KEAPI_RETVAL KEApiLedGetCount(KEAPI_PRM_START
     int32_t *pLedCount);
 
 /*!
- \brief          reding LED status
+ \brief          reading LED status
 
  \param[in]      ledNb   index of LED (0..MAX_NB_LED-1)
  \param[out]     pStatus 0:off 1:on
@@ -1372,6 +1372,8 @@ KEAPI_CALLTYPE KEAPI_RETVAL KEApiLedGetCount(KEAPI_PRM_START
  */
 KEAPI_CALLTYPE KEAPI_RETVAL KEApiLedGetStatus(KEAPI_PRM_START
     int32_t ledNb, int32_t *pStatus);
+
+
 
 /*!
  \brief          setting LED
@@ -1394,7 +1396,7 @@ typedef struct Keapi_LED_Config {
 } KEAPI_LED_CONFIG, *PKEAPI_LED_CONFIG;
 
 /*!
- \brief          setting status of LED
+ \brief          setting configuration of LED
 
  \param[in]      ledNb  index of LED (0..MAX_NB_LED-1)
  \param[in]      Config KEAPI_LED_CONFIG structure representing configuration of LED
@@ -1404,6 +1406,18 @@ typedef struct Keapi_LED_Config {
  */
 KEAPI_CALLTYPE KEAPI_RETVAL KEApiLedSetConfig(KEAPI_PRM_START
     int32_t ledNb, KEAPI_LED_CONFIG Config);
+
+/*!
+ \brief          reading capability configuration of LED
+
+ \param[in]      ledNb  index of LED (0..MAX_NB_LED-1)
+ \param[in]      pConfig return PKEAPI_LED_CONFIG structure configuration of LED
+ \return
+ * - KEAPI_RET_SUCCESS on success
+ * - KEAPI_RET_NOT_INITIALIZED when library is not initialized
+ */
+KEAPI_CALLTYPE KEAPI_RETVAL KEApiLedGetCaps(KEAPI_PRM_START
+    int32_t ledNb, PKEAPI_LED_CONFIG pConfig);
 
 /*!
  \brief          getting status of LED
@@ -1416,6 +1430,30 @@ KEAPI_CALLTYPE KEAPI_RETVAL KEApiLedSetConfig(KEAPI_PRM_START
  */
 KEAPI_CALLTYPE KEAPI_RETVAL KEApiLedGetConfig(KEAPI_PRM_START
     int32_t ledNb, PKEAPI_LED_CONFIG pConfig);
+
+
+/*!
+ \brief          Getting reset reason 
+´
+ \param[out]     pResetSource reset reason
+ \return
+ * - KEAPI_RET_SUCCESS on success
+ * - KEAPI_RET_NOT_INITIALIZED when library is not initialized
+ */
+KEAPI_CALLTYPE KEAPI_RETVAL KEApiGetResetSource(KEAPI_PRM_START
+    int32_t *pResetSource);
+
+
+/*!
+ \brief          Clearing reset reason 
+´
+  \return
+ * - KEAPI_RET_SUCCESS on success
+ * - KEAPI_RET_NOT_INITIALIZED when library is not initialized
+ */
+KEAPI_CALLTYPE KEAPI_RETVAL KEApiClearResetSource(KEAPI_PRM_START);
+
+
 
 #ifdef __cplusplus
 } // #ifdef __cplusplus
