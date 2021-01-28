@@ -1,3 +1,4 @@
+
 /* SPDX-License-Identifier: BSD-3-Clause */
 /* Copyright (C) 2019 Kontron Europe GmbH */
 
@@ -22,13 +23,11 @@
 #define _USE_KEAPI_FULL
 #endif
 
-#define PRINTK_DEBUG
-
 /* Settings for the EN01-152 Kontron-USB-GPIO module */
-// 8 GPIO index 0..7
-#define NB_GPIO 8
 #define SER_DEVICE "/dev/ttyACM0"
 #define SER_BAUD   57600
+#define GPIO_DIRECTION_FILE "/tmp/gpioDir"
+#define EN01_152_NB_IO 8  /* Number IO of EN01-152 */
 
 // Message start [1-3]:"<0F" 
 //    [4]messageType [5-6]commandCode [7-8] Length 
@@ -115,7 +114,7 @@ void debugBuffer (int myDebug, char *string, char *buffer, int bufferLength)
 
 
 
-int gpioGetInputs (int *inputVal)
+int gpioGetInputs (uint32_t *inputVal)
 {
     char buffer[32];   /* Buffer to store the data received */
     int bytesRead, fd;
@@ -170,9 +169,6 @@ int gpioSetOutput (long mask, long value)
     
     bytesRead = read (fd, &buffer, 32); /* Read response  */
 		
-#ifdef PRINTK_DEBUG
-    debugBuffer (1, "gpioSetOutput response",  buffer, bytesRead);
-#endif
     close (fd);
     return 0;               
 }
@@ -209,9 +205,6 @@ static uint32_t GetGpioConfig(void)
 
 	strcpy(bufstr, json_string_value(data));
 
-#ifdef PRINTK_DEBUG
-printf ("GetGpioConfig: gpioStyle %s\n", bufstr);
-#endif
 	if (strcmp(bufstr, "linux-like") == 0)
 		gpioStyle = LINUX_LIKE;
 	else if (strcmp(bufstr, "kontron-like-kem") == 0) {
@@ -228,12 +221,26 @@ printf ("GetGpioConfig: gpioStyle %s\n", bufstr);
 #endif
 	} else
 		goto exit;
-    
-#ifdef PRINTK_DEBUG
-printf ("GetGpioConfig: gpioStyle %d == %d\n", gpioStyle, EN01_152);
-#endif    
-    if (gpioStyle == EN01_152)
+     
+    if (gpioStyle == EN01_152) {
+        if ((ret = checkRWAccess(GPIO_DIRECTION_FILE)) == KEAPI_RET_RETRIEVAL_ERROR) {
+            /* create file */
+            FILE *fp;
+            char data[20];
+            uint32_t outputs;
+            fp = fopen(GPIO_DIRECTION_FILE, "w+");
+            fclose (fp);
+            
+            /* default setting;  an output is: if the output-value == 1 */
+            /* (an output with the value ==0 my be an input too) */
+            if (gpioGetOutputs (&outputs) == 0) {
+                /* !! in direction Bit ==0 output; ==1 input */
+                sprintf (data, "0x%x\n", ~outputs & 0xFF);
+                ret = WriteFile(GPIO_DIRECTION_FILE, data);
+            }              
+        }
         return KEAPI_RET_SUCCESS;
+    }
 
 	jGpPortArr = json_object_get(root, "gpioPort");
 	if (!json_is_array(jGpPortArr))
@@ -383,7 +390,7 @@ KEAPI_RETVAL KEApiL_GetGpioPortCount(int32_t *pCount)
 	}
 	
     if (gpioStyle == EN01_152) {
-        *pCount = NB_GPIO;
+        *pCount = 1;
         return KEAPI_RET_SUCCESS;
     }	
 
@@ -413,8 +420,10 @@ KEAPI_RETVAL KEApiL_GetGpioPortDirectionCaps(int32_t portNr, uint32_t *pIns, uin
 		return KEAPI_RET_PARAM_ERROR;
     
     if (gpioStyle == EN01_152)    {
-        gpioGetOutputs (pOuts);
-	    *pIns = ~(*pOuts) & 0xff;
+//        gpioGetOutputs (pOuts);
+//	    *pIns = ~(*pOuts) & 0xff;
+        *pOuts = 0xFF;
+        *pIns = 0xFF;
     }
     else {
         *pIns = gpPortArr[portNr].isIn;
@@ -687,8 +696,8 @@ exit_close:
 
 #endif
 
+#if 0
 /* old linux-style interface support functions */
-
 static int WriteFile(char *path, char *data)
 {
 	FILE *fp;
@@ -715,6 +724,7 @@ static int WriteFile(char *path, char *data)
 	fclose(fp);
 	return ret;
 }
+#endif 
 
 static KEAPI_RETVAL linux_gpio_export(int32_t Nr)
 {
@@ -1030,9 +1040,13 @@ KEAPI_RETVAL KEApiL_GetGpioPortDirections(int32_t portNr, uint32_t *pDirections)
     
     if (gpioStyle == EN01_152)
     {
-        gpioGetOutputs (pDirections);
-        *pDirections = ~(*pDirections) & 0xFF;
-        return KEAPI_RET_SUCCESS;
+//        gpioGetOutputs (pDirections);
+//        *pDirections = ~(*pDirections) & 0xFF;
+        char *data;
+        if ((ret = ReadFile(GPIO_DIRECTION_FILE, &data)) == 0) {
+           *pDirections =strtol (data, NULL, 0);
+        }
+		return ret;
     }
     
 	if (gpioStyle == LINUX_LIKE || gpioStyle == KONTRON_LIKE_KEM)
@@ -1053,6 +1067,26 @@ KEAPI_RETVAL KEApiL_SetGpioPortDirections(int32_t portNr, uint32_t directions)
 
 	if (portNr < 0 || portNr >= gpPortArrCount)
 		return KEAPI_RET_PARAM_ERROR;
+    
+    if (gpioStyle == EN01_152)    {
+        char data[20];
+        uint32_t outputs, i;
+        sprintf (data, "0x%x\n", directions);
+        ret = WriteFile(GPIO_DIRECTION_FILE, data);
+        /* if a bit is set to an input, this output value has to be set to "0" */
+        if (gpioGetOutputs (&outputs) == 0) {
+            for (i=0; i<EN01_152_NB_IO; i++) {
+                if (directions & BIT(i)) { 
+                    /* set to input */
+                    if (outputs && BIT(i)) {
+                        /* output set to 1 == configured to an output */
+                        gpioSetOutput (BIT(i), 0); /*set output = 0 == input too */
+                    }
+                }
+            }
+        }                     
+        return ret;
+    }
 
 	/* sanity check: don't allow setting direction which is not
 	 * supported by the pin */
@@ -1082,10 +1116,8 @@ KEAPI_RETVAL KEApiL_GetGpioPortLevels(int32_t portNr, uint32_t *pLevels)
 
 	if ((ret = KEApiL_GetGpioPortCount(&devCnt)) != KEAPI_RET_SUCCESS)
 		return ret;
-#ifdef PRINTK_DEBUG
-printf ("KEApiL_GetGpioPortLevels: portNr %d gpPortArrCount:%d\n", portNr, gpPortArrCount);
-#endif
-	if (portNr < 0 || portNr >= gpPortArrCount)
+
+    if (portNr < 0 || portNr >= gpPortArrCount)
 		return KEAPI_RET_PARAM_ERROR;
 
 	*pLevels = 0;
@@ -1095,8 +1127,20 @@ printf ("KEApiL_GetGpioPortLevels: portNr %d gpPortArrCount:%d\n", portNr, gpPor
 		return gpio_get_levels(portNr, pLevels);
 #endif
     if (gpioStyle == EN01_152)
-        return (gpioGetOutputs (pLevels));
-
+    {
+        uint32_t inputs, outputs;
+        
+        /* read input + output levels */
+        if ((gpioGetOutputs (&outputs) == 0) &&
+            (gpioGetInputs (&inputs) == 0) )
+        {
+            *pLevels = outputs | inputs;
+            return KEAPI_RET_SUCCESS;
+        }
+        else
+            return KEAPI_RET_ERROR;
+            
+    }
 
 	if (gpioStyle == LINUX_LIKE || gpioStyle == KONTRON_LIKE_KEM)
 		return linux_gpio_get_levels(portNr, pLevels);
@@ -1107,7 +1151,7 @@ printf ("KEApiL_GetGpioPortLevels: portNr %d gpPortArrCount:%d\n", portNr, gpPor
 /******************************************************************************/
 KEAPI_RETVAL KEApiL_SetGpioPortLevels(int32_t portNr, uint32_t levels)
 {
-	int32_t devCnt, ret;
+	int32_t devCnt, ret, directions;
 
 	/* Check function parameters */
 	if ((ret = KEApiL_GetGpioPortCount(&devCnt)) != KEAPI_RET_SUCCESS)
@@ -1121,6 +1165,16 @@ KEAPI_RETVAL KEApiL_SetGpioPortLevels(int32_t portNr, uint32_t levels)
 		return gpio_set_levels(portNr, levels);
     }
 #endif
+    if (gpioStyle == EN01_152) {
+        char *data;
+        if ((ret = ReadFile(GPIO_DIRECTION_FILE, &data)) == 0) {
+           directions = strtol (data, NULL, 0);
+           /* attention direction-bit == 0 == Output */
+           if ((levels & ~directions) != levels)
+            return KEAPI_RET_ERROR;
+        }
+        return (gpioSetOutput (0xFF, levels));
+    }
 
 	if (gpioStyle == LINUX_LIKE || gpioStyle == KONTRON_LIKE_KEM)
 		return linux_gpio_set_levels(portNr, levels);
