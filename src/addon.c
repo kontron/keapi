@@ -591,5 +591,6 @@ KEAPI_RETVAL KEApiGetResetSource(int32_t *pResetSource)
 /*******************************************************************************/
 KEAPI_RETVAL KEApiClearResetSource()
 {
-    return (WriteFile(SYS_FS_RSTAT, "0xff"));
+    WriteFile(SYS_FS_RSTAT, "0xff");
+    return KEAPI_RET_SUCCESS;
 } 
