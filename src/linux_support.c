@@ -915,6 +915,35 @@ int32_t ReadFile(char *filename, char **outbuff)
 	return KEAPI_RET_SUCCESS;
 }
 
+/*******************************************************************************/
+int32_t WriteFile(char *path, char *data)
+{
+	FILE *fp;
+	int32_t ret;
+
+	if ((ret = checkRWAccess(path)) != KEAPI_RET_SUCCESS)
+		return ret;
+
+	fp = fopen(path, "w");
+	if (!fp)
+		return KEAPI_RET_ERROR;
+
+	ret = fwrite(data, 1, strlen(data), fp);
+	if (ret > 0) {
+		ret = fflush(fp);
+		if (ret == 0)
+			ret = KEAPI_RET_SUCCESS;
+		else
+			ret = KEAPI_RET_ERROR;
+	} else {
+		ret = KEAPI_RET_ERROR;
+	}
+
+	fclose(fp);
+	return ret;
+}				     
+
+
 #define BUF_SIZE 1024
 
 int32_t GetExternalCommandOutput(char *command, char **data)
