@@ -7,6 +7,7 @@
 #include <string.h>
 #include <pcre.h>
 #include <dirent.h>
+#include <regex.h>
 
 #include "keapi_inc.h"
 #include "pcihdr.h"
@@ -51,6 +52,7 @@ KEAPI_RETVAL KEApiL_GetPciDeviceList(PKEAPI_PCI_DEVICE pPciDevices, int32_t pciD
 	pcre *re;
 	const char *error;
 	int erroffset;
+	char *modinfo;
 
 	/* Check function parameters */
 	if (pPciDevices == NULL)
@@ -252,6 +254,58 @@ KEAPI_RETVAL KEApiL_GetPciDeviceList(PKEAPI_PCI_DEVICE pPciDevices, int32_t pciD
 				strncat(pPciDevices[i].className, PciClassCodeTable[j].BaseDesc, KEAPI_MAX_STR - 1);
 				break;
 			}
+	}
+
+	/* check empty deviceName, ask modinfo */
+
+	if ((ret = checkRAccess("/usr/sbin/modinfo")) == KEAPI_RET_SUCCESS)
+		modinfo = "/usr/sbin/modinfo";
+	else if ((ret = checkRAccess("/sbin/modinfo")) == KEAPI_RET_SUCCESS)
+		modinfo = "/sbin/modinfo";
+	else if ((ret = checkRAccess("/usr/bin/modinfo")) == KEAPI_RET_SUCCESS)
+		modinfo = "/usr/bin/modinfo";
+	else
+		modinfo = NULL;
+
+	for (i = 0; (modinfo && i < count); i++) {
+		char module_name[KEAPI_MAX_STR], modinfo_cmd[KEAPI_MAX_STR], *pdata;
+
+		if (strlen(pPciDevices[i].deviceName) == 0) {
+
+			/* look pci driver name */
+			if (snprintf(path, KEAPI_MAX_STR, "%s/%04x:%02x:%02x.%01x/driver/module/drivers", PCI_PATH,
+			    pPciDevices[i].domain, pPciDevices[i].bus, pPciDevices[i].slot, pPciDevices[i].funct) < 0)
+				continue;
+
+			if ((ret = checkRAccess(path)) != KEAPI_RET_SUCCESS)
+				continue;
+
+			if ((dir = opendir(path)) == NULL)
+				continue;
+
+			while ((ent = readdir(dir)) != NULL) {
+				if (strncmp(ent->d_name, "pci:", 4) == 0) {
+					strcpy(module_name, ent->d_name + 4);
+				}
+			}
+			closedir(dir);
+
+
+			if (snprintf(modinfo_cmd, KEAPI_MAX_STR, "%s %s 2>/dev/null\n", modinfo, module_name) < 0) {
+				continue;
+			}
+
+			/* ask modinfo for pci driver name */
+			if ((ret = GetExternalCommandOutput(modinfo_cmd, &pdata)) != KEAPI_RET_SUCCESS) {
+				continue;
+			}
+			if (GetSubStrRegex(pdata, "description:\\s+(.*)", &substr, REG_EXTENDED | REG_NEWLINE | REG_ICASE) ==
+			    KEAPI_RET_SUCCESS) {
+				strcpy(pPciDevices[i].deviceName, substr);
+				free(substr);
+			}
+			free(pdata);
+		}
 	}
 
 	if (pciDeviceCount < real_dev_count)
