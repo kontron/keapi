@@ -53,6 +53,7 @@ KEAPI_RETVAL KEApiL_GetPciDeviceList(PKEAPI_PCI_DEVICE pPciDevices, int32_t pciD
 	const char *error;
 	int erroffset;
 	char *modinfo;
+	char *pci_ids_filename;
 
 	/* Check function parameters */
 	if (pPciDevices == NULL)
@@ -254,6 +255,65 @@ KEAPI_RETVAL KEApiL_GetPciDeviceList(PKEAPI_PCI_DEVICE pPciDevices, int32_t pciD
 				strncat(pPciDevices[i].className, PciClassCodeTable[j].BaseDesc, KEAPI_MAX_STR - 1);
 				break;
 			}
+	}
+
+	/* check empty deviceName, ask pci.ids
+	 * Syntax:
+	 * vendor  vendor_name
+	 *	device  device_name    <-- single tab
+	 */
+
+	if ((ret = checkRAccess("/usr/share/hwdata/pci.ids")) == KEAPI_RET_SUCCESS)
+		pci_ids_filename = "/usr/share/hwdata/pci.ids";
+	else if ((ret = checkRAccess("/usr/share/misc/pci.ids")) == KEAPI_RET_SUCCESS)
+		pci_ids_filename = "/usr/share/misc/pci.ids";
+	else if ((ret = checkRAccess("/usr/share/pci.ids")) == KEAPI_RET_SUCCESS)
+		pci_ids_filename = "/usr/share/pci.ids";
+	else if ((ret = checkRAccess("/var/lib/pciutils/pci.ids")) == KEAPI_RET_SUCCESS)
+		pci_ids_filename = "/var/lib/pciutils/pci.ids";
+	else
+		pci_ids_filename = NULL;
+
+	for (i = 0; i < count; i++) {
+		if (pci_ids_filename && strlen(pPciDevices[i].deviceName) == 0) {
+			char *line_buf = NULL;
+			size_t line_buf_size = 0;
+			uint16_t vendorId = 0, deviceId = 0;
+			char vendorField[5];
+
+			FILE *fp = fopen(pci_ids_filename, "r");
+
+			if (!fp)
+				break;
+
+			while (getline(&line_buf, &line_buf_size, fp) >= 0) {
+
+				if (line_buf[0] != '\t' && line_buf[0] != '#') { /* probably Vendor field */
+					strncpy(vendorField, line_buf, 4);
+					vendorId = strtol(vendorField, NULL, 16);
+					continue;
+				}
+				if (pPciDevices[i].vendorId == vendorId ) {
+					if (GetSubStrRegex(line_buf, "^\t([0-9a-f]{4})", &substr, REG_EXTENDED | REG_NEWLINE | REG_ICASE) ==
+						KEAPI_RET_SUCCESS)  {  /* Device field */
+						deviceId = strtol(substr, NULL, 16);
+						free(substr);
+					}
+
+					if (pPciDevices[i].deviceId == deviceId) {
+						if (GetSubStrRegex(line_buf, "^\t[0-9a-f]*\\s*(.*)", &substr, REG_EXTENDED | REG_NEWLINE | REG_ICASE) ==
+						    KEAPI_RET_SUCCESS)  {
+							strcpy(pPciDevices[i].deviceName, substr);
+							free(substr);
+							break;
+						}
+					}
+				}
+			}
+			free(line_buf);
+			line_buf = NULL;
+			fclose(fp);
+		}
 	}
 
 	/* check empty deviceName, ask modinfo */
