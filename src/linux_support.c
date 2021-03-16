@@ -942,6 +942,10 @@ int32_t GetExternalCommandOutput(char *command, char **data)
 		memcpy(mainbuf + bufsize, buf, amount);
 		bufsize += amount;
 	}
+
+	if(!mainbuf && ((mainbuf = malloc(1)) == NULL))
+		return KEAPI_RET_MALLOC_ERROR;
+
 	mainbuf[bufsize] = '\0';
 	bufsize++;
 	pclose(fp);
