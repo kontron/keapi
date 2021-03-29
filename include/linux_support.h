@@ -42,6 +42,7 @@
 #define WDTCONF_PATH "/etc/keapi/watchdog.conf"
 #define GPIOCONF_PATH "/etc/keapi/gpio.conf"
 #define SYS_PERF_CONF_PATH "/etc/keapi/systemstates.conf"
+#define PCI_CONF_PATH "/etc/keapi/pci.conf"
 #define BOOT_COUNT_PATH "/etc/keapi/bootcount0"
 #define INTRUDER_PATH "/etc/keapi/intruder"
 #define STORAGE_EEPROM_PATH "/etc/keapi/storage.conf"

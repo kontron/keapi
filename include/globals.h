@@ -60,6 +60,16 @@ EXTERN struct GpioPortInfo *gpPortArr I(= NULL);
 EXTERN int32_t gpPortArrCount I(= 0);
 EXTERN pthread_mutex_t gpio_mutex;
 
+/* Data structures and variables for pci */
+struct PciInfo {
+	int32_t deviceId;
+	int32_t vendorId;
+	char deviceName[KEAPI_MAX_STR];
+	char vendorName[KEAPI_MAX_STR];
+};
+EXTERN struct PciInfo *pciDevtArr I(= NULL);
+EXTERN uint32_t pciDevArrCount I(= 0);
+
 /* backward compatibility */
 EXTERN int8_t unexportTrig I(= TRUE); /* lets us to know should we do unexport gpio or not */
 EXTERN enum FeatureStyle gpioStyle I(= LINUX_LIKE); /* means 1 gpio per one port */

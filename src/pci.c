@@ -8,10 +8,13 @@
 #include <pcre.h>
 #include <dirent.h>
 #include <regex.h>
+#include <jansson.h>
 
 #include "keapi_inc.h"
 #include "pcihdr.h"
+#include "globals.h"
 
+#define DEV_ARR_CHUNK_SIZE 256
 /*******************************************************************************/
 KEAPI_RETVAL KEApiL_GetPciDeviceCount(int32_t *pPciDeviceCount)
 {
@@ -40,6 +43,215 @@ KEAPI_RETVAL KEApiL_GetPciDeviceCount(int32_t *pPciDeviceCount)
 }
 
 /*******************************************************************************/
+/* function helper  for reading pci vendor/device ids and
+   device names from config file and filling a cache */
+static void GetPciConfig(void)
+{
+	json_t *root, *jPciArr, *jPciDev, *data;
+	json_error_t error;
+	uint32_t i;
+	void *tmp;
+
+	if (checkRAccess(PCI_CONF_PATH) != KEAPI_RET_SUCCESS)
+		return;
+
+	root = json_load_file(PCI_CONF_PATH, JSON_DECODE_ANY, &error);
+	if (!root)
+		goto exit;
+
+	jPciArr = json_object_get(root, "pciDevices");
+	if (!json_is_array(jPciArr))
+		goto exit;
+
+	for (i = 0; i < json_array_size(jPciArr); i++) {
+		jPciDev = json_array_get(jPciArr, i);
+		if (!json_is_object(jPciDev)) {
+			continue;
+		}
+
+		if (pciDevArrCount % DEV_ARR_CHUNK_SIZE == 0) {
+			tmp = realloc(pciDevtArr, sizeof(struct PciInfo) * (pciDevArrCount + DEV_ARR_CHUNK_SIZE));
+			if (!tmp)
+				return;
+			pciDevtArr = tmp;
+		}
+
+		data = json_object_get(jPciDev, "VendorId");
+		if (json_is_string(data))
+			pciDevtArr[pciDevArrCount].vendorId = strtol(json_string_value(data), NULL, 16);
+		else
+			continue;
+
+		data = json_object_get(jPciDev, "DeviceId");
+		if (json_is_string(data))
+			pciDevtArr[pciDevArrCount].deviceId = strtol(json_string_value(data), NULL, 16);
+		else
+			continue;
+
+		data = json_object_get(jPciDev, "DeviceName");
+		if (json_is_string(data)) {
+			strncpy(pciDevtArr[pciDevArrCount].deviceName, json_string_value(data), KEAPI_MAX_STR);
+		} else {
+			pciDevtArr[pciDevArrCount].deviceName[0] = '\0';
+		}
+
+		data = json_object_get(jPciDev, "VendorName");
+		if (json_is_string(data)) {
+			strncpy(pciDevtArr[pciDevArrCount].vendorName, json_string_value(data), KEAPI_MAX_STR);
+		} else {
+			pciDevtArr[pciDevArrCount].vendorName[0] = '\0';
+		}
+
+		pciDevArrCount++;
+	}
+exit:
+	json_decref(root);
+}
+
+/*******************************************************************************/
+/* function helper  for reading system pci.ids file and
+ * filling a cache
+*/
+static void GetPciIds(void)
+{
+	char *line_buf = NULL;
+	size_t line_buf_size = 0;
+	uint16_t vendorId = 0, deviceId = 0;
+	char *substr, *pci_ids_filename;
+	char vendorField[5] = "", vendorName[KEAPI_MAX_STR] = "";
+	void *tmp;
+
+	if (checkRAccess("/usr/share/hwdata/pci.ids") == KEAPI_RET_SUCCESS)
+		pci_ids_filename = "/usr/share/hwdata/pci.ids";
+	else if ((checkRAccess("/usr/share/misc/pci.ids")) == KEAPI_RET_SUCCESS)
+		pci_ids_filename = "/usr/share/misc/pci.ids";
+	else if (checkRAccess("/usr/share/pci.ids") == KEAPI_RET_SUCCESS)
+		pci_ids_filename = "/usr/share/pci.ids";
+	else if (checkRAccess("/var/lib/pciutils/pci.ids") == KEAPI_RET_SUCCESS)
+		pci_ids_filename = "/var/lib/pciutils/pci.ids";
+	else
+		pci_ids_filename = NULL;
+
+	if (pci_ids_filename) {
+		FILE *fp = fopen(pci_ids_filename, "r");
+
+		if (!fp)
+			return;
+
+		while (getline(&line_buf, &line_buf_size, fp) >= 0) {
+			if (line_buf[0] != '\t' && line_buf[0] != '#') { /* probably Vendor field */
+				strncpy(vendorField, line_buf, 4);
+				vendorId = strtol(vendorField, NULL, 16);
+				if (GetSubStrRegex(line_buf, "^[0-9a-f]*\\s*(.*)", &substr,
+						   REG_EXTENDED | REG_NEWLINE | REG_ICASE) == KEAPI_RET_SUCCESS) {
+					strncpy(vendorName, substr, KEAPI_MAX_STR);
+					free(substr);
+				}
+				continue;
+
+			} else if (GetSubStrRegex(line_buf, "^\t([0-9a-f]{4})", &substr,
+						  REG_EXTENDED | REG_NEWLINE | REG_ICASE) == KEAPI_RET_SUCCESS) {
+				deviceId = strtol(substr, NULL, 16);
+				free(substr);
+
+				if (GetSubStrRegex(line_buf, "^\t[0-9a-f]*\\s*(.*)", &substr,
+						   REG_EXTENDED | REG_NEWLINE | REG_ICASE) == KEAPI_RET_SUCCESS) {
+					if (pciDevArrCount % DEV_ARR_CHUNK_SIZE == 0) {
+						tmp = realloc(pciDevtArr, sizeof(struct PciInfo) * (pciDevArrCount + DEV_ARR_CHUNK_SIZE));
+						if (!tmp) {
+							free(substr);
+							return;
+						}
+						pciDevtArr = tmp;
+					}
+					pciDevtArr[pciDevArrCount].vendorId = vendorId;
+					pciDevtArr[pciDevArrCount].deviceId = deviceId;
+					strncpy(pciDevtArr[pciDevArrCount].deviceName, substr, KEAPI_MAX_STR);
+					strncpy(pciDevtArr[pciDevArrCount].vendorName, vendorName, KEAPI_MAX_STR);
+					free(substr);
+					pciDevArrCount++;
+				}
+			}
+		}
+		free(line_buf);
+		line_buf = NULL;
+		fclose(fp);
+	}
+}
+
+/*******************************************************************************/
+/* function helper  for reading driver name with modinfo
+ * and filling a cache
+*/
+static void GetModinfo(PKEAPI_PCI_DEVICE pPciDevices, int32_t count)
+{
+	char module_name[KEAPI_MAX_STR], modinfo_cmd[KEAPI_MAX_STR], *pdata;
+	int32_t i;
+	char *modinfo, *substr;
+	DIR *dir;
+	struct dirent *ent;
+	char path[KEAPI_MAX_STR];
+	void *tmp;
+
+	if (checkRAccess("/usr/sbin/modinfo") == KEAPI_RET_SUCCESS)
+		modinfo = "/usr/sbin/modinfo";
+	else if (checkRAccess("/sbin/modinfo") == KEAPI_RET_SUCCESS)
+		modinfo = "/sbin/modinfo";
+	else if (checkRAccess("/usr/bin/modinfo") == KEAPI_RET_SUCCESS)
+		modinfo = "/usr/bin/modinfo";
+	else
+		modinfo = NULL;
+
+	for (modinfo && (i = 0); i < count; i++) {
+		/* look pci driver name */
+		if (snprintf(path, KEAPI_MAX_STR, "%s/%04x:%02x:%02x.%01x/driver/module/drivers", PCI_PATH,
+			     pPciDevices[i].domain, pPciDevices[i].bus, pPciDevices[i].slot, pPciDevices[i].funct) < 0)
+			continue;
+
+		if (checkRAccess(path) != KEAPI_RET_SUCCESS)
+			continue;
+
+		if ((dir = opendir(path)) == NULL)
+			continue;
+
+		while ((ent = readdir(dir)) != NULL) {
+			if (strncmp(ent->d_name, "pci:", 4) == 0) {
+				strcpy(module_name, ent->d_name + 4);
+			}
+		}
+		closedir(dir);
+
+		if (snprintf(modinfo_cmd, KEAPI_MAX_STR, "%s %s 2>/dev/null\n", modinfo, module_name) < 0) {
+			continue;
+		}
+
+		/* ask modinfo for pci driver name */
+		if (GetExternalCommandOutput(modinfo_cmd, &pdata) != KEAPI_RET_SUCCESS) {
+			continue;
+		}
+
+		if (GetSubStrRegex(pdata, "description:\\s+(.*)", &substr, REG_EXTENDED | REG_NEWLINE | REG_ICASE) ==
+		    KEAPI_RET_SUCCESS) {
+			if (pciDevArrCount % DEV_ARR_CHUNK_SIZE == 0) {
+				tmp = realloc(pciDevtArr, sizeof(struct PciInfo) * (pciDevArrCount + DEV_ARR_CHUNK_SIZE));
+				if (!tmp) {
+					free(substr);
+					return;
+				}
+				pciDevtArr = tmp;
+			}
+			pciDevtArr[pciDevArrCount].vendorId = pPciDevices[i].vendorId;
+			pciDevtArr[pciDevArrCount].deviceId = pPciDevices[i].deviceId;
+			strncpy(pciDevtArr[pciDevArrCount].deviceName, substr, KEAPI_MAX_STR);
+			pciDevtArr[pciDevArrCount].vendorName[0] = '\0';
+			pciDevArrCount++;
+			free(substr);
+		}
+		free(pdata);
+	}
+}
+
+/*******************************************************************************/
 KEAPI_RETVAL KEApiL_GetPciDeviceList(PKEAPI_PCI_DEVICE pPciDevices, int32_t pciDeviceCount)
 {
 	DIR *dir;
@@ -52,8 +264,6 @@ KEAPI_RETVAL KEApiL_GetPciDeviceList(PKEAPI_PCI_DEVICE pPciDevices, int32_t pciD
 	pcre *re;
 	const char *error;
 	int erroffset;
-	char *modinfo;
-	char *pci_ids_filename;
 
 	/* Check function parameters */
 	if (pPciDevices == NULL)
@@ -257,116 +467,47 @@ KEAPI_RETVAL KEApiL_GetPciDeviceList(PKEAPI_PCI_DEVICE pPciDevices, int32_t pciD
 			}
 	}
 
-	/* check empty deviceName, ask pci.ids
-	 * Syntax:
-	 * vendor  vendor_name
-	 *	device  device_name    <-- single tab
-	 */
+	GetPciConfig();
 
-	if ((ret = checkRAccess("/usr/share/hwdata/pci.ids")) == KEAPI_RET_SUCCESS)
-		pci_ids_filename = "/usr/share/hwdata/pci.ids";
-	else if ((ret = checkRAccess("/usr/share/misc/pci.ids")) == KEAPI_RET_SUCCESS)
-		pci_ids_filename = "/usr/share/misc/pci.ids";
-	else if ((ret = checkRAccess("/usr/share/pci.ids")) == KEAPI_RET_SUCCESS)
-		pci_ids_filename = "/usr/share/pci.ids";
-	else if ((ret = checkRAccess("/var/lib/pciutils/pci.ids")) == KEAPI_RET_SUCCESS)
-		pci_ids_filename = "/var/lib/pciutils/pci.ids";
-	else
-		pci_ids_filename = NULL;
-
+	/* /etc/keapi/pci.conf overrides any device or vendor name */
 	for (i = 0; i < count; i++) {
-		if (pci_ids_filename && strlen(pPciDevices[i].deviceName) == 0) {
-			char *line_buf = NULL;
-			size_t line_buf_size = 0;
-			uint16_t vendorId = 0, deviceId = 0;
-			char vendorField[5];
-
-			FILE *fp = fopen(pci_ids_filename, "r");
-
-			if (!fp)
+		for (j = 0; j < pciDevArrCount; j++) {
+			if (pPciDevices[i].vendorId == pciDevtArr[j].vendorId &&
+			    pPciDevices[i].deviceId == pciDevtArr[j].deviceId) {
+				strcpy(pPciDevices[i].deviceName, pciDevtArr[j].deviceName);
+				if (strlen(pPciDevices[i].vendorName) > 0)
+					strcpy(pPciDevices[i].vendorName, pciDevtArr[j].vendorName);
 				break;
-
-			while (getline(&line_buf, &line_buf_size, fp) >= 0) {
-
-				if (line_buf[0] != '\t' && line_buf[0] != '#') { /* probably Vendor field */
-					strncpy(vendorField, line_buf, 4);
-					vendorId = strtol(vendorField, NULL, 16);
-					continue;
-				}
-				if (pPciDevices[i].vendorId == vendorId ) {
-					if (GetSubStrRegex(line_buf, "^\t([0-9a-f]{4})", &substr, REG_EXTENDED | REG_NEWLINE | REG_ICASE) ==
-						KEAPI_RET_SUCCESS)  {  /* Device field */
-						deviceId = strtol(substr, NULL, 16);
-						free(substr);
-					}
-
-					if (pPciDevices[i].deviceId == deviceId) {
-						if (GetSubStrRegex(line_buf, "^\t[0-9a-f]*\\s*(.*)", &substr, REG_EXTENDED | REG_NEWLINE | REG_ICASE) ==
-						    KEAPI_RET_SUCCESS)  {
-							strcpy(pPciDevices[i].deviceName, substr);
-							free(substr);
-							break;
-						}
-					}
-				}
 			}
-			free(line_buf);
-			line_buf = NULL;
-			fclose(fp);
 		}
 	}
 
-	/* check empty deviceName, ask modinfo */
+	GetPciIds();
+	GetModinfo(pPciDevices, count);
 
-	if ((ret = checkRAccess("/usr/sbin/modinfo")) == KEAPI_RET_SUCCESS)
-		modinfo = "/usr/sbin/modinfo";
-	else if ((ret = checkRAccess("/sbin/modinfo")) == KEAPI_RET_SUCCESS)
-		modinfo = "/sbin/modinfo";
-	else if ((ret = checkRAccess("/usr/bin/modinfo")) == KEAPI_RET_SUCCESS)
-		modinfo = "/usr/bin/modinfo";
-	else
-		modinfo = NULL;
-
-	for (i = 0; (modinfo && i < count); i++) {
-		char module_name[KEAPI_MAX_STR], modinfo_cmd[KEAPI_MAX_STR], *pdata;
-
+	/* pci.ids and modinfo are valid only for empty pci device name */
+	for (i = 0; i < count; i++) {
 		if (strlen(pPciDevices[i].deviceName) == 0) {
-
-			/* look pci driver name */
-			if (snprintf(path, KEAPI_MAX_STR, "%s/%04x:%02x:%02x.%01x/driver/module/drivers", PCI_PATH,
-			    pPciDevices[i].domain, pPciDevices[i].bus, pPciDevices[i].slot, pPciDevices[i].funct) < 0)
-				continue;
-
-			if ((ret = checkRAccess(path)) != KEAPI_RET_SUCCESS)
-				continue;
-
-			if ((dir = opendir(path)) == NULL)
-				continue;
-
-			while ((ent = readdir(dir)) != NULL) {
-				if (strncmp(ent->d_name, "pci:", 4) == 0) {
-					strcpy(module_name, ent->d_name + 4);
+			for (j = 0; j < pciDevArrCount; j++) {
+				if (pPciDevices[i].vendorId == pciDevtArr[j].vendorId &&
+				    pPciDevices[i].deviceId == pciDevtArr[j].deviceId) {
+					strcpy(pPciDevices[i].deviceName, pciDevtArr[j].deviceName);
+					break;
 				}
 			}
-			closedir(dir);
-
-
-			if (snprintf(modinfo_cmd, KEAPI_MAX_STR, "%s %s 2>/dev/null\n", modinfo, module_name) < 0) {
-				continue;
+		}
+		if (strlen(pPciDevices[i].vendorName) == 0) {
+			for (j = 0; j < pciDevArrCount; j++) {
+				if (pPciDevices[i].vendorId == pciDevtArr[j].vendorId &&
+				    pPciDevices[i].deviceId == pciDevtArr[j].deviceId) {
+					strcpy(pPciDevices[i].vendorName, pciDevtArr[j].vendorName);
+					break;
+				}
 			}
-
-			/* ask modinfo for pci driver name */
-			if ((ret = GetExternalCommandOutput(modinfo_cmd, &pdata)) != KEAPI_RET_SUCCESS) {
-				continue;
-			}
-			if (GetSubStrRegex(pdata, "description:\\s+(.*)", &substr, REG_EXTENDED | REG_NEWLINE | REG_ICASE) ==
-			    KEAPI_RET_SUCCESS) {
-				strcpy(pPciDevices[i].deviceName, substr);
-				free(substr);
-			}
-			free(pdata);
 		}
 	}
+	if (pciDevtArr)
+		free(pciDevtArr);
 
 	if (pciDeviceCount < real_dev_count)
 		return KEAPI_RET_PARTIAL_SUCCESS;
