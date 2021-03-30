@@ -982,28 +982,32 @@ int32_t GetSubStrRegex(char *str, char *regex, char **substr, int32_t flags)
 	regex_t rx;
 	regmatch_t *matches;
 	int32_t len;
+	int32_t ret;
 
 	if (regcomp(&rx, regex, flags))
 		return KEAPI_RET_ERROR;
 
 	matches = (regmatch_t *)malloc((rx.re_nsub + 1) * sizeof(regmatch_t));
 
-	if (regexec(&rx, str, rx.re_nsub + 1, matches, 0) != 0) /* REG_NOTBOL | REG_NOTEOL */
-		return KEAPI_RET_RETRIEVAL_ERROR;
-
+	if (regexec(&rx, str, rx.re_nsub + 1, matches, 0) != 0) { /* REG_NOTBOL | REG_NOTEOL */
+		ret = KEAPI_RET_RETRIEVAL_ERROR;
+		goto exit;
+	}
 	/* Take the second result */
 	if (matches[0].rm_so != -1 && matches[1].rm_so != -1) {
 		len = matches[1].rm_eo - matches[1].rm_so;
 		*substr = (char *)malloc(len + 1);
 		strncpy(*substr, str + matches[1].rm_so, len);
 		(*substr)[len] = '\0';
-	} else
-		return KEAPI_RET_RETRIEVAL_ERROR;
-
+		ret = KEAPI_RET_SUCCESS;
+	} else {
+		ret = KEAPI_RET_RETRIEVAL_ERROR;
+	}
+exit:
 	regfree(&rx);
 	free(matches);
 
-	return KEAPI_RET_SUCCESS;
+	return ret;
 }
 
 /*******************************************************************************/
