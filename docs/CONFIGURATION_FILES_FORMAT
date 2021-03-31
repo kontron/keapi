@@ -15,6 +15,7 @@ Content
 2.4 Configuration file storage.conf
 2.5 Configuration file systemstates.conf
 2.6 Configuration file watchdog.conf
+2.7 Configuration file pci.conf
 3.0 Description of intruder and bootcount0 symbolic links
 
 1.0 Overview
@@ -32,6 +33,7 @@ In general can be used the following files:
 - storage.conf
 - systemstates.conf
 - watchdog.conf
+- pci.conf
 
 All files are placed in the "/etc/keapi" directory of target file system.
 
@@ -535,6 +537,49 @@ specific watchdog (i.e. 2 stages are supported and RESET mode is supported);
  -- "kontron-like-kom" - means that on system is supported Kontron KOM
 specific watchdog (i.e. stages are supported and RESET, IRQ and TIMEOUT modes
 are supported).
+
+
+2.7 Configuration file pci.conf
+=====================================
+
+Configuration file contains information about PCIe devices. It allows user to
+define "proper" Vendor and Device names to particular PCIe devices. E.g. in
+case if a built-in(include/pcihdr.h) or system (/usr/share/hwdata/pci.ids)
+database is obsolete and KEAPI returns empty names for devices.
+
+Example of /etc/keapi/pci.conf:
+--------- START OF FILE ---------
+{
+    "pciDevices": [
+        {
+            "VendorId": "8086",
+            "VendorName": "Some vendor name",
+            "DeviceId": "27d8",
+            "DeviceName": "Some device name"
+        },
+        {
+            "VendorId": "0001",
+            "VendorName": "Another vendor name",
+            "DeviceId": "27d9",
+            "DeviceName": "Another device name"
+        }
+    ]
+}
+---------- END OF FILE ----------
+
+- VendorId - Vendor ID for PCIe device;
+- DeviceId - Device ID for PCIe device;
+- VendorName - a human-friendly name for vendor, which should be returned by
+  KEAPI;
+- DeviceName - a human-friendly name for device, which should be returned by
+  KEAPI.
+
+Notes:
+ - a pair of VendorId and DeviceId attributes is used to identify a PCIe device
+and to substitute/override corresponding VendorName and DeviceName. These IDs
+should correspond to values reported by Linux;
+ - IDs are hex values without "0x" part and should be put in brackets "";
+ - Names are string values and should be put in brackets "" as well.
 
 3.0 Description of intruder and bootcount0 symbolic links
 =========================================================
