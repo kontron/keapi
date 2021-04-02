@@ -329,6 +329,10 @@ void *TryToParseSmbiosHeader(char *data, unsigned char *type)
 		strncat(sysInfo->product, dmi_string(&hd, data[DMI_STR_SYS_PRDCT_NM]), KEAPI_MAX_STR - 1);
 		strncat(sysInfo->version, dmi_string(&hd, data[DMI_STR_SYS_VERSION]), KEAPI_MAX_STR - 1);
 		strncat(sysInfo->serial, dmi_string(&hd, data[DMI_STR_SYS_SERIALNUM]), KEAPI_MAX_STR - 1);
+		memcpy(sysInfo->uuid, &data[DMI_16B_SYS_UUID], DMI_LEN_SYS_UUID);
+		sysInfo->wakeup = data[DMI_BT_SYS_WAKEUP];
+		strncat(sysInfo->sku, dmi_string(&hd, data[DMI_STR_SYS_SKU]), KEAPI_MAX_STR - 1);
+		strncat(sysInfo->family, dmi_string(&hd, data[DMI_STR_SYS_FAMILY]), KEAPI_MAX_STR - 1);
 		*type = hd.type;
 		return sysInfo;
 	}

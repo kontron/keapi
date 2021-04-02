@@ -7,6 +7,7 @@
 
 KEAPI_RETVAL KEApiL_GetLibVersion(PKEAPI_VERSION_DATA pVersion);
 KEAPI_RETVAL KEApiL_GetBoardInfo(PKEAPI_BOARD_INFO pBoardInfo);
+KEAPI_RETVAL KEApiL_GetSysInfo(PKEAPI_SYSTEM_INFO pSystemInfo);
 KEAPI_RETVAL KEApiL_GetBootCounter(int32_t *pBootCount);
 KEAPI_RETVAL KEApiL_SystemUpTime(int32_t *pSystemUpTime);
 KEAPI_RETVAL KEApiL_GetIntruderStatus(int32_t *pIntruderStatus);

@@ -315,6 +315,18 @@ typedef struct Keapi_Sensor_Info {
 			     must be reported as an absolute value, NOT a delta */
 } KEAPI_SENSOR_INFO, *PKEAPI_SENSOR_INFO;
 
+/* Keapi Addons */
+
+typedef struct Keapi_System_Info {
+	char systemManufacturer[KEAPI_MAX_STR]; /* System manufacturer */
+	char systemName[KEAPI_MAX_STR];         /* System name */
+	char systemVersion[KEAPI_MAX_STR];      /* System version */
+	char systemSerialNumber[KEAPI_MAX_STR]; /* System serial number */
+	char systemUUID[KEAPI_MAX_STR];         /* System UUID number */
+	char systemSKUNumber[KEAPI_MAX_STR];    /* System SKU number */
+	char systemFamily[KEAPI_MAX_STR];       /* System family */
+} KEAPI_SYSTEM_INFO, *PKEAPI_SYSTEM_INFO;
+
 #ifdef _WIN32
 #pragma pack(pop)
 #endif
@@ -1346,6 +1358,14 @@ KEAPI_CALLTYPE KEAPI_RETVAL KEApiWatchdogGetExpired (KEAPI_PRM_START
 KEAPI_CALLTYPE KEAPI_RETVAL KEApiWatchdogClearExpired (KEAPI_PRM_VOID);
 
 KEAPI_CALLTYPE KEAPI_RETVAL KEApiWatchdogWaitUntilExpired (KEAPI_PRM_VOID);
+
+/*/////////////////////////////////////////////////////////////////////////////
+// Keapi Addons
+///////////////////////////////////////////////////////////////////////////// */
+
+KEAPI_CALLTYPE KEAPI_RETVAL KEApiGetSysInfo(KEAPI_PRM_START
+        PKEAPI_SYSTEM_INFO pSystemInfo
+);
 
 #ifdef __cplusplus
 } // #ifdef __cplusplus

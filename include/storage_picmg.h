@@ -71,11 +71,17 @@ struct BIOSInfo {
 };
 
 /* SMBIOS struct of first type (SMBIOS Type 1) (see SMBios spec.)*/
+#define DMI_LEN_SYS_UUID	16
+
 struct SysInfo {
 	char manufacturer[KEAPI_MAX_STR];
 	char product[KEAPI_MAX_STR];
 	char version[KEAPI_MAX_STR];
 	char serial[KEAPI_MAX_STR];
+	uint8_t uuid[DMI_LEN_SYS_UUID];
+	uint8_t wakeup;
+	char sku[KEAPI_MAX_STR];
+	char family[KEAPI_MAX_STR];
 };
 
 /* SMBIOS struct of second type (SMBIOS Type 2) (see SMBios spec.)*/
@@ -122,6 +128,7 @@ struct EepUsr *TryToGetUserDataArea(char *eep_data, int32_t offset);
 // DMI_BF - Bit field in a table
 // DMI_BT - Byte in a table
 // DMI_4B - Four bytes
+// DMI_16B - 16 bytes
 #define DMI_T_BIOS 0 // BIOS Information (DMI Type 0)
 #define DMI_STR_BIOS_VENDOR		0x04
 #define DMI_STR_BIOS_VERSION		0x05
@@ -132,6 +139,10 @@ struct EepUsr *TryToGetUserDataArea(char *eep_data, int32_t offset);
 #define DMI_STR_SYS_PRDCT_NM		0x05
 #define DMI_STR_SYS_VERSION		0x06
 #define DMI_STR_SYS_SERIALNUM		0x07
+#define DMI_16B_SYS_UUID		0x08
+#define DMI_BT_SYS_WAKEUP		0x18
+#define DMI_STR_SYS_SKU			0x19
+#define DMI_STR_SYS_FAMILY		0x1a
 
 #define DMI_T_HW 2 // Base Board (or Module) Information (DMI Type 2)
 #define DMI_STR_HW_MANUFATURER		0x04

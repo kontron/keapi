@@ -22,6 +22,13 @@ KEAPI_CALLTYPE KEAPI_RETVAL KEApiGetBoardInfo(PKEAPI_BOARD_INFO pBoardInfo)
 	return KEApiL_GetBoardInfo(pBoardInfo);
 }
 
+KEAPI_CALLTYPE KEAPI_RETVAL KEApiGetSysInfo(PKEAPI_SYSTEM_INFO pSystemInfo)
+{
+	if (pSystemInfo == NULL)
+		return KEAPI_RET_PARAM_NULL;
+	return KEApiL_GetSysInfo (pSystemInfo);
+}
+
 KEAPI_CALLTYPE KEAPI_RETVAL KEApiGetBootCounter(int32_t *pBootCount)
 {
 	if (pBootCount == NULL)

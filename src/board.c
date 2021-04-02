@@ -143,6 +143,31 @@ static void fillDataFromHeader(unsigned char tableType, void *parsedSmbiosHeader
 	return;
 }
 
+static void fillSystemInfoDataFromHeader(void *parsedSmbiosHeader, PKEAPI_SYSTEM_INFO pSystemInfo)
+{
+	if (!parsedSmbiosHeader)
+		return;
+
+	struct SysInfo *sysInfo = parsedSmbiosHeader;
+	uint8_t *d;
+
+	strncat(pSystemInfo->systemManufacturer, sysInfo->manufacturer, KEAPI_MAX_STR - 1);
+	strncat(pSystemInfo->systemName, sysInfo->product, KEAPI_MAX_STR - 1);
+	strncat(pSystemInfo->systemVersion, sysInfo->version, KEAPI_MAX_STR - 1);
+	strncat(pSystemInfo->systemSerialNumber, sysInfo->serial, KEAPI_MAX_STR - 1);
+	/* FIXME: add support of old smbios versions (< 2.6) with different byte order
+	* For more info see SMBIOS specs "7.2.1 System — UUID"
+	* */
+	d = sysInfo->uuid;
+	snprintf(pSystemInfo->systemUUID, KEAPI_MAX_STR - 1,
+		 "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x", d[3], d[2], d[1], d[0], d[5],
+		 d[4], d[7], d[6], d[8], d[9], d[10], d[11], d[12], d[13], d[14], d[15]);
+	strncat(pSystemInfo->systemSKUNumber, sysInfo->sku, KEAPI_MAX_STR - 1);
+	strncat(pSystemInfo->systemFamily, sysInfo->family, KEAPI_MAX_STR - 1);
+
+	return;
+}
+
 /*******************************************************************************/
 KEAPI_RETVAL KEApiL_GetBoardInfo(PKEAPI_BOARD_INFO pBoardInfo)
 {
@@ -394,4 +419,64 @@ KEAPI_RETVAL KEApiL_GetBoardInfo(PKEAPI_BOARD_INFO pBoardInfo)
 
 	free(data);
 	return KEAPI_RET_SUCCESS;
+}
+
+/*******************************************************************************/
+KEAPI_RETVAL KEApiL_GetSysInfo(PKEAPI_SYSTEM_INFO pSystemInfo)
+{
+	uint16_t table_len, struct_count;
+	char *data, *str;
+	unsigned char str_len;
+	// return error if System Information table is not present
+	int i, ret = KEAPI_RET_RETRIEVAL_ERROR;
+
+	/* Check function parameters */
+	if (pSystemInfo == NULL)
+		return KEAPI_RET_PARAM_NULL;
+
+	/* Initialization */
+	pSystemInfo->systemManufacturer[0] = '\0';
+	pSystemInfo->systemName[0] = '\0';
+	pSystemInfo->systemVersion[0] = '\0';
+	pSystemInfo->systemSerialNumber[0] = '\0';
+	pSystemInfo->systemUUID[0] = '\0';
+	pSystemInfo->systemSKUNumber[0] = '\0';
+	pSystemInfo->systemFamily[0] = '\0';
+
+	if (MachineIsX86() == FALSE)
+		return KEAPI_RET_SUCCESS;
+
+	/* GET DMI TABLE */
+	if ((ret = getDmiTable(&data, &table_len, &struct_count)) != KEAPI_RET_SUCCESS)
+		return ret;
+
+	/* Walking through table and looking for table 1(SYSINFO) */
+	str = data;
+	for (i = 0; i < struct_count; i++) {
+		unsigned char tableType;
+		void *parsedSmbiosHeader = NULL;
+
+		str_len = str[0x01];
+
+		parsedSmbiosHeader = TryToParseSmbiosHeader(str, &tableType);
+
+		if ((parsedSmbiosHeader != NULL) && (tableType == DMI_T_SYS)) {
+			fillSystemInfoDataFromHeader(parsedSmbiosHeader, pSystemInfo);
+			free(parsedSmbiosHeader);
+			ret = KEAPI_RET_SUCCESS;
+			break;
+		}
+
+		free(parsedSmbiosHeader);
+
+		str += str_len;
+		/* looking for \0\0 */
+		while (str[0] != 0 || str[1] != 0)
+			str++;
+		str++;
+		str++;
+	}
+
+	free(data);
+	return ret;
 }
