@@ -29742,6 +29742,7 @@ PCI_DEVTABLE PciDevTable[] = {
 	{ 0x8086, 0x3E30, "8th Gen Core 8-core Desktop Processor Host Bridge/DRAM Registers [Coffee Lake S]" },
 	{ 0x8086, 0x3E33, "8th/9th Gen Core Processor Host Bridge/DRAM Registers [Coffee Lake]" },
 	{ 0x8086, 0x3E34, "Coffee Lake HOST and DRAM Controller" },
+	{ 0x8086, 0x3E35, "Coffee Lake Host Bridge/DRAM Registers" },
 	{ 0x8086, 0x3E81, "8th Gen Core Processor PCIe Controller (x16)" },
 	{ 0x8086, 0x3E85, "8th Gen Core Processor PCIe Controller (x8)" },
 	{ 0x8086, 0x3E89, "8th Gen Core Processor PCIe Controller (x4)" },
